@@ -634,20 +634,11 @@
   .about-card p { font-size: 14px; line-height: 1.8; color: var(--text2); font-family:var(--font-sans); margin-bottom: 9px; }
   #splash { position:fixed; inset:0; z-index:99999; background:var(--bg); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:14px; padding:24px; text-align:center; transition:opacity .55s ease, visibility .55s; }
   #splash.hide { opacity:0; visibility:hidden; pointer-events:none; }
-  #splash svg { width:min(300px,70vw); height:auto; overflow:visible; }
-  #splash .sp-river { fill:none; stroke:var(--accent); stroke-width:3; stroke-linecap:round; stroke-dasharray:6 9; animation:spFlow 1.2s linear infinite; opacity:.9; }
-  #splash .sp-main { stroke-width:4.5; stroke:var(--accent2); }
-  #splash .sp-basin { fill:none; stroke:var(--accent); stroke-width:1.4; opacity:.35; stroke-dasharray:420; stroke-dashoffset:420; animation:spDraw 2.4s ease-out forwards; }
-  #splash .sp-pt { fill:var(--accent); transform-box:fill-box; transform-origin:center; animation:spPulse 1.6s ease-in-out infinite; }
-  #splash .sp-pt:nth-of-type(2) { animation-delay:.3s; } #splash .sp-pt:nth-of-type(3) { animation-delay:.6s; } #splash .sp-pt:nth-of-type(4) { animation-delay:.9s; }
+  #splash canvas { width:min(420px,88vw); height:auto; aspect-ratio:400/280; display:block; }
   #splash h1 { font-family:var(--font-serif); font-size:clamp(18px,3.4vw,24px); font-weight:600; color:var(--accent2); margin:0; line-height:1.3; }
   #splash .sp-sub { font-family:var(--font-sans); font-size:12.5px; color:var(--text2); min-height:1.3em; }
   #splash .sp-bar { width:min(280px,70vw); height:4px; border-radius:4px; background:var(--border); overflow:hidden; }
   #splash .sp-bar > i { display:block; height:100%; width:4%; background:var(--accent); border-radius:4px; transition:width .5s ease; }
-  @keyframes spFlow { to { stroke-dashoffset:-30; } }
-  @keyframes spDraw { to { stroke-dashoffset:0; } }
-  @keyframes spPulse { 0%,100% { transform:scale(1); opacity:1; } 50% { transform:scale(1.9); opacity:.45; } }
-  @media (prefers-reduced-motion: reduce) { #splash .sp-river, #splash .sp-pt { animation:none; } #splash .sp-basin { animation:none; stroke-dashoffset:0; } }
   @media (max-width: 700px) {
     .header-inner { display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px 10px; padding:8px 12px !important; }
     .header-brand { grid-column:1; grid-row:1; gap:8px; min-width:0; }
@@ -886,19 +877,145 @@
 </head>
 <body>
 <div id="splash" role="status" aria-live="polite">
-  <svg viewBox="0 0 200 130" aria-hidden="true">
-    <path class="sp-basin" d="M22 20 C55 4 120 6 168 24 C192 42 190 88 160 112 C120 128 60 124 30 100 C8 80 6 42 22 20Z"/>
-    <path class="sp-river" d="M40 34 C62 44 76 52 92 66"/>
-    <path class="sp-river" d="M160 30 C142 46 122 56 104 68"/>
-    <path class="sp-river" d="M56 100 C66 90 82 80 94 72"/>
-    <path class="sp-river sp-main" d="M98 68 C108 82 116 96 124 112"/>
-    <circle class="sp-pt" cx="40" cy="34" r="3.2"/><circle class="sp-pt" cx="160" cy="30" r="3.2"/>
-    <circle class="sp-pt" cx="56" cy="100" r="3.2"/><circle class="sp-pt" cx="124" cy="112" r="3.2"/>
-  </svg>
+  <canvas id="sp-canvas" aria-hidden="true"></canvas>
   <h1>Türkiye Akarsu Morfometrisi Veri Tabanı</h1>
   <div class="sp-bar"><i id="splash-bar"></i></div>
   <div class="sp-sub" id="splash-text">Başlatılıyor…</div>
 </div>
+<script>
+/* Açılış animasyonu: yağış → yamaçlardan kollara toplanma → ana kol → çıkışta taşkın yayılımı */
+(function(){
+  var cv=document.getElementById('sp-canvas'); if(!cv||!cv.getContext) return;
+  var ctx=cv.getContext('2d'), W=400, H=280, dpr=Math.min(window.devicePixelRatio||1,2);
+  cv.width=W*dpr; cv.height=H*dpr; ctx.scale(dpr,dpr);
+
+  var basin=new Path2D('M60 40 C110 8 290 8 345 40 C390 80 350 140 262 168 C240 176 232 182 228 190 L172 190 C168 182 160 176 138 168 C50 140 20 80 60 40 Z');
+  function bez(p,t){var u=1-t;return [
+    u*u*u*p[0][0]+3*u*u*t*p[1][0]+3*u*t*t*p[2][0]+t*t*t*p[3][0],
+    u*u*u*p[0][1]+3*u*u*t*p[1][1]+3*u*t*t*p[2][1]+t*t*t*p[3][1]];}
+  function sample(p,n){var a=[];for(var i=0;i<=n;i++)a.push(bez(p,i/n));return a;}
+  function toPath(pts){var p=new Path2D();p.moveTo(pts[0][0],pts[0][1]);for(var i=1;i<pts.length;i++)p.lineTo(pts[i][0],pts[i][1]);return p;}
+
+  var main=sample([[200,105],[215,135],[190,160],[200,188]],40);
+  var tribDefs=[
+    {p:[[90,52],[95,95],[160,88],[200,105]],j:0},
+    {p:[[312,52],[305,95],[240,88],[200,105]],j:0},
+    {p:[[148,24],[150,62],[190,68],[200,105]],j:0},
+    {p:[[252,24],[255,62],[212,70],[200,105]],j:0},
+    {p:[[200,16],[196,45],[206,70],[200,105]],j:0},
+    {p:[[55,88],[100,135],[150,118],main[14]],j:14},
+    {p:[[350,90],[300,140],[250,118],main[22]],j:22}
+  ];
+  var routes=tribDefs.map(function(d){
+    var s=sample(d.p,50), pts=s.concat(main.slice(d.j+1));
+    return {pts:pts, path:toPath(s)};
+  });
+  var mainPath=toPath(main);
+
+  var OX=200, OY=188;
+  function fanPt(a,f,tm){
+    var n=1+0.13*Math.sin(a*7+tm*1.6)+0.08*Math.sin(a*13-tm*2.1);
+    var w=Math.pow(Math.sin(a),0.5);
+    return [OX+Math.cos(a)*185*f*n*w, OY+Math.sin(a)*84*f*n];
+  }
+  function ss(a,b,x){x=Math.min(1,Math.max(0,(x-a)/(b-a)));return x*x*(3-2*x);}
+
+  var T=10, drops=[], ripples=[], parts=[], dAcc=0, pAcc=0, last=0, t0=0, lastCyc=-1, frameNo=0, accent='#9c5a34';
+
+  function randInBasin(){
+    for(var k=0;k<12;k++){
+      var x=45+Math.random()*310, y=14+Math.random()*140;
+      if(ctx.isPointInPath(basin,x*dpr,y*dpr)) return [x,y];
+    } return null;
+  }
+
+  function render(t,dt,still,time){
+    var dark=document.documentElement.classList.contains('dark-mode');
+    var wc=dark?'109,182,216':'47,127,168', rc=dark?'156,199,220':'91,143,168';
+    if(frameNo++%60===0){ var a=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(); if(a) accent=a; }
+    var g=still?1:Math.min(1,t/0.5)*Math.min(1,(T-t)/1.0);
+    var rain=still?0:ss(0,1.5,t)*(1-ss(T-3,T-1.2,t));
+    var vol=still?1:0.15+0.85*ss(0.4,5,t);
+    var f=still?1:ss(2,7.5,t);
+
+    ctx.clearRect(0,0,W,H);
+    ctx.lineCap='round'; ctx.lineJoin='round'; ctx.setLineDash([]);
+
+    /* havza zemini */
+    ctx.globalAlpha=g;
+    ctx.fillStyle='rgba('+wc+','+(0.04+0.08*vol)+')'; ctx.fill(basin);
+
+    /* taşkın yayılımı */
+    if(f>0.01){
+      var gr=ctx.createRadialGradient(OX,OY,4,OX,OY+40,190*f+10);
+      gr.addColorStop(0,'rgba('+wc+',0.6)'); gr.addColorStop(1,'rgba('+wc+',0.16)');
+      ctx.beginPath();
+      for(var k=0;k<=60;k++){var p=fanPt(Math.PI*k/60,f,time); k?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]);}
+      ctx.closePath(); ctx.fillStyle=gr; ctx.fill();
+      ctx.strokeStyle='rgba('+wc+',0.75)'; ctx.lineWidth=1.4; ctx.stroke();
+      ctx.lineWidth=1; ctx.strokeStyle='rgba('+wc+',0.4)'; ctx.setLineDash([4,7]); ctx.lineDashOffset=-time*28;
+      for(var q=0;q<7;q++){
+        var aa=Math.PI*(0.14+0.72*q/6), e=fanPt(aa,f*0.94,time);
+        ctx.beginPath(); ctx.moveTo(OX,OY); ctx.lineTo(e[0],e[1]); ctx.stroke();
+      }
+      ctx.setLineDash([]);
+    }
+
+    /* akarsu ağı */
+    ctx.strokeStyle='rgba('+wc+','+(0.2+0.4*vol)+')'; ctx.lineWidth=0.6+1.6*vol;
+    routes.forEach(function(r){ctx.stroke(r.path);});
+    ctx.strokeStyle='rgba('+wc+','+(0.35+0.5*vol)+')'; ctx.lineWidth=1.4+3.4*vol; ctx.stroke(mainPath);
+
+    if(!still){
+      /* damlalar */
+      dAcc+=rain*90*dt;
+      while(dAcc>=1){dAcc--; var lp=randInBasin(); if(lp) drops.push({x:lp[0]+28,y:lp[1]-120,lx:lp[0],ly:lp[1]});}
+      ctx.strokeStyle='rgba('+rc+',0.75)'; ctx.lineWidth=1;
+      for(var i=drops.length-1;i>=0;i--){
+        var d=drops[i]; d.y+=170*dt; d.x-=40*dt;
+        if(d.y>=d.ly){ripples.push({x:d.lx,y:d.ly,r:0}); drops.splice(i,1); continue;}
+        ctx.beginPath(); ctx.moveTo(d.x,d.y); ctx.lineTo(d.x+1.8,d.y-7); ctx.stroke();
+      }
+      for(var j=ripples.length-1;j>=0;j--){
+        var rp=ripples[j]; rp.r+=15*dt;
+        if(rp.r>7){ripples.splice(j,1);continue;}
+        ctx.strokeStyle='rgba('+rc+','+(0.8*(1-rp.r/7))+')'; ctx.lineWidth=0.8;
+        ctx.beginPath(); ctx.ellipse(rp.x,rp.y,rp.r,rp.r*0.45,0,0,6.2832); ctx.stroke();
+      }
+      /* akan su zerrecikleri */
+      pAcc+=34*vol*(0.35+0.65*rain)*dt;
+      while(pAcc>=1&&parts.length<320){pAcc--; parts.push({r:routes[Math.floor(Math.random()*routes.length)],i:Math.random()*6,k:0.8+Math.random()*0.5});}
+      pAcc=Math.min(pAcc,3);
+      ctx.fillStyle='rgba('+wc+',0.9)';
+      var rad=1.3+0.9*vol;
+      for(var m=parts.length-1;m>=0;m--){
+        var pt=parts[m]; pt.i+=(16+30*vol)*pt.k*dt;
+        var L=pt.r.pts.length-1;
+        if(pt.i>=L){parts.splice(m,1);continue;}
+        var ii=Math.floor(pt.i), fr=pt.i-ii, A=pt.r.pts[ii], B=pt.r.pts[ii+1];
+        ctx.beginPath(); ctx.arc(A[0]+(B[0]-A[0])*fr, A[1]+(B[1]-A[1])*fr, rad, 0, 6.2832); ctx.fill();
+      }
+    }
+
+    /* havza sınırı */
+    ctx.strokeStyle=accent; ctx.globalAlpha=g*0.6; ctx.lineWidth=1.4; ctx.stroke(basin);
+    ctx.globalAlpha=1;
+  }
+
+  if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches){ render(0,0,true,0); return; }
+
+  function frame(now){
+    if(!cv.isConnected) return;
+    if(!t0){t0=now; last=now;}
+    var dt=Math.min(0.05,(now-last)/1000); last=now;
+    var el=(now-t0)/1000, cyc=Math.floor(el/T), t=el%T;
+    if(cyc!==lastCyc){lastCyc=cyc; drops=[]; ripples=[]; parts=[];}
+    render(t,dt,false,el);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
 
 <header>
   <div class="header-inner" style="padding-left:0;">
@@ -1649,6 +1766,7 @@ function renderWatershed(data) {
 let riverLayer = null;
 
 function renderRiver(data) {
+  disableRiverTiles();
   layers.river.clearLayers();
   const geojson = (data.type === 'Topology') ? topoToGeoJSON(data) : data;
   riverGeoJSON  = geojson;
@@ -1659,11 +1777,83 @@ function renderRiver(data) {
 }
 
 function refreshRiver() {
+  if (!riverLayer) return;
   const z = map.getZoom();
   if (z >= 9) {
     if (!layers.river.hasLayer(riverLayer)) layers.river.addLayer(riverLayer);
   } else {
     if (layers.river.hasLayer(riverLayer)) layers.river.removeLayer(riverLayer);
+  }
+}
+
+/* ── Kademeli + karolu nehir yükleyici (Data/river/) ─────────────────────────
+   process_river.py çıktısını okur: index.json → kademeler (t1..t5) → karolar.
+   Sadece ekrandaki karolar ve yakınlaştırma seviyesine uygun kademeler yüklenir. */
+const RIVER_DIR = 'Data/river';
+let riverIndex = null, riverTilesOn = false;
+const riverTiles = new Map();          // 'tier/i_j' -> { layer, tier, i, j } | { loading:true }
+const RIVER_CACHE_MAX = 120;
+function riverStyleFor(c) {
+  const w = c >= 8 ? 2.8 : c >= 6 ? 2.1 : c >= 4 ? 1.6 : c >= 2 ? 1.1 : 0.8;
+  return { color:'#3f6b4a', weight:w, opacity:0.85, lineCap:'round', lineJoin:'round' };
+}
+async function initRiverTiles() {
+  try {
+    const r = await fetch(RIVER_DIR + '/index.json');
+    if (!r.ok) return false;
+    riverIndex = await r.json();
+  } catch (e) { return false; }
+  riverTilesOn = true;
+  map.on('moveend', updateRiverTiles);
+  updateRiverTiles();
+  return true;
+}
+function disableRiverTiles() {
+  if (!riverTilesOn) return;
+  riverTilesOn = false;
+  map.off('moveend', updateRiverTiles);
+  riverTiles.forEach(t => { if (t.layer) layers.river.removeLayer(t.layer); });
+  riverTiles.clear();
+}
+async function loadRiverTile(tier, i, j, key) {
+  riverTiles.set(key, { loading:true });
+  try {
+    const r = await fetch(`${RIVER_DIR}/${tier.id}/${i}_${j}.json`);
+    if (!r.ok) throw new Error(r.status);
+    const topo = await r.json();
+    if (!riverTilesOn) return;
+    const fc = topojson.feature(topo, topo.objects.r);
+    const layer = L.geoJSON(fc, { interactive:false, style: f => riverStyleFor(f.properties.grid_code) });
+    riverTiles.set(key, { layer, tier, i, j });
+    updateRiverTiles();
+  } catch (e) { riverTiles.delete(key); console.warn('[river] karo yüklenemedi', key, e); }
+}
+function updateRiverTiles() {
+  if (!riverTilesOn || !riverIndex) return;
+  const z = map.getZoom(), view = map.getBounds().pad(0.2);
+  const want = new Set();
+  for (const tier of riverIndex.tiers) {
+    if (z < tier.minZoom) continue;
+    const ts = tier.tile;
+    for (const k of tier.tiles) {
+      const [i, j] = k.split('_').map(Number);
+      if (!view.intersects(L.latLngBounds([j*ts, i*ts], [(j+1)*ts, (i+1)*ts]))) continue;
+      const key = tier.id + '/' + k;
+      want.add(key);
+      if (!riverTiles.has(key)) loadRiverTile(tier, i, j, key);
+    }
+  }
+  riverTiles.forEach((t, key) => {
+    if (!t.layer) return;
+    const show = want.has(key), has = layers.river.hasLayer(t.layer);
+    if (show && !has) layers.river.addLayer(t.layer);
+    else if (!show && has) layers.river.removeLayer(t.layer);
+  });
+  if (riverTiles.size > RIVER_CACHE_MAX) {          // ekran dışındaki eski karoları at
+    for (const [key, t] of riverTiles) {
+      if (riverTiles.size <= RIVER_CACHE_MAX) break;
+      if (t.layer && !want.has(key)) riverTiles.delete(key);
+    }
   }
 }
 
@@ -5473,7 +5663,7 @@ function hideSplash() {
   const el = document.getElementById('splash');
   if (!el || el.classList.contains('hide')) return;
   setSplash(100, 'Hazır');
-  const wait = Math.max(0, 1300 - (performance.now() - _splashStart));
+  const wait = Math.max(0, 8000 - (performance.now() - _splashStart));
   setTimeout(() => { el.classList.add('hide'); setTimeout(() => el.remove(), 700); }, wait);
 }
 setTimeout(hideSplash, 30000);
@@ -5508,6 +5698,11 @@ async function autoLoad() {
     }
   }
 
+  setSplash(45, 'Nehir ağı hazırlanıyor…');
+  if (await initRiverTiles()) {
+    const nT = riverIndex.tiers.reduce((s, t) => s + t.tiles.length, 0);
+    try { setCardState('river', 'ok', 'Data/river (kademeli, sunucu)', '✓ ' + nT + ' karo'); } catch (e) {}
+  }
   setSplash(55, 'Morfometri verileri okunuyor…');
   await loadCSVSourcesFromServer();
   setSplash(80, 'Genel havza şeması hazırlanıyor…');
