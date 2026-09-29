@@ -4677,7 +4677,20 @@ function onBoxPaletteChange(key) {
   updateBoxPlot();
 }
 
-const CORR_PARAMS  = ['Bh','Hi','T','Dd','Rn','Lo','Fs','Kc','MRn','Rl','Rb','Tc_Kirpich'];
+const CORR_PARAMS  = ['Bh','Hi','T','Dd','Rn','Lo','Fs','Kc','MRn','Di','Rho','If','Rl','Rb','Tc_Kirpich'];
+function _normKey(s) {
+  return String(s).replace(/[İIı]/g, 'i').toLowerCase().replace(/\u0307/g, '').trim();
+}
+function corrFields() {
+  const byNorm = {};
+  csvHeaders.forEach(h => { const k = _normKey(h); if (!(k in byNorm)) byNorm[k] = h; });
+  const out = [];
+  CORR_PARAMS.forEach(p => {
+    const h = byNorm[_normKey(p)];
+    if (h !== undefined && !out.includes(h) && csvData.some(r => typeof r[h] === 'number')) out.push(h);
+  });
+  return out;
+}
 const CORR_METHODS = ['pearson','spearman','kendall','dcor','mic','partial'];
 
 let corrCache = {};
@@ -4737,9 +4750,7 @@ function _buildCorrCache(onDone) {
     });
   });
 
-  const fields = CORR_PARAMS.filter(f =>
-    csvHeaders.includes(f) && csvData.some(r => typeof r[f] === 'number')
-  );
+  const fields = corrFields();
 
   if (!fields.length || !segments.length) {
     corrCacheBuilding = false;
@@ -5013,9 +5024,7 @@ function buildCorrMatrix() {
   const wrap     = document.getElementById('corr-matrix-wrap');
   const btn      = document.getElementById('corr-calc-btn');
 
-  const fields = CORR_PARAMS.filter(f =>
-    csvHeaders.includes(f) && csvData.some(r => typeof r[f] === 'number')
-  );
+  const fields = corrFields();
 
   if (!fields.length) {
     wrap.innerHTML = `<p style="padding:16px;color:var(--red);font-family:var(--font-sans);font-size:12px">⚠ Korelasyon için sayısal parametre bulunamadı.</p>`;
@@ -5067,7 +5076,7 @@ function _renderCorrMatrix(fields, method, mat, n) {
   };
   const methodLabel    = methodLabels[method] || method;
   const isPositiveOnly = method === 'dcor' || method === 'mic';
-  const cellSize = 58, labelW = 100;
+  const cellSize = 56, labelW = 84, gap = 2;
 
   function getCellColor(val) {
     if (isPositiveOnly) {
@@ -5081,42 +5090,52 @@ function _renderCorrMatrix(fields, method, mat, n) {
     return corrColor(val);
   }
 
-  let html = `<div style="padding:16px;overflow-x:auto">`;
-  html += `<p style="font-size:11px;font-family:var(--font-sans);color:var(--text2);margin-bottom:10px;font-weight:600">`;
-  html += `${methodLabel} — ${fields.length} parametre, ${n} gözlem`;
+  const nF = fields.length;
+  const tableW = labelW + nF * cellSize + (nF + 2) * gap;
+  const lblStyle = 'font-size:11px;font-weight:700;color:var(--text2);white-space:nowrap;';
+
+  let html = `<div style="padding:16px;overflow-x:auto;background:var(--surface)">`;
+  html += `<p style="font-size:11px;font-family:var(--font-sans);color:var(--text2);margin:0 0 12px;font-weight:600">`;
+  html += `${methodLabel} — ${nF} parametre, ${n} gözlem`;
   if (isPositiveOnly) html += ` &nbsp;<span style="font-weight:400;color:var(--text3)">(aralık: 0–1, yön bilgisi içermez)</span>`;
   if (method === 'partial') html += ` &nbsp;<span style="font-weight:400;color:var(--text3)">(diğer değişkenlerin etkisi giderilmiş)</span>`;
-  html += `</p><table style="border-collapse:collapse;font-family:var(--font-sans);font-size:11px;">`;
+  html += `</p>`;
 
-  html += `<tr><th style="width:${labelW}px"></th>`;
-  fields.forEach(f => {
-    html += `<th style="width:${cellSize}px;text-align:center;padding:4px 2px;writing-mode:vertical-rl;transform:rotate(180deg);max-height:90px;font-size:10px;color:var(--text2);font-weight:700">${f}</th>`;
-  });
-  html += `</tr>`;
+  html += `<table style="border-collapse:separate;border-spacing:${gap}px;table-layout:fixed;width:${tableW}px;font-family:var(--font-sans);">`;
+  html += `<colgroup><col style="width:${labelW}px">${fields.map(() => `<col style="width:${cellSize}px">`).join('')}</colgroup>`;
 
   fields.forEach((f1, i) => {
-    html += `<tr><td style="padding:3px 8px 3px 0;font-weight:700;color:var(--text2);white-space:nowrap;max-width:${labelW}px;overflow:hidden;text-overflow:ellipsis;font-size:11px">${f1}</td>`;
+    html += `<tr style="height:${cellSize}px"><td style="${lblStyle}text-align:right;padding-right:8px;vertical-align:middle">${escapeHtml(f1)}</td>`;
     fields.forEach((f2, j) => {
-      if (j > i) { html += `<td style="width:${cellSize}px;height:${cellSize}px;background:transparent;border:none;"></td>`; return; }
-      if (i === j) { html += `<td style="width:${cellSize}px;height:${cellSize}px;text-align:center;background:var(--surface2);color:var(--text3);font-weight:700;border:1px solid var(--border);cursor:default;font-size:12px">1.00</td>`; return; }
-
+      if (j > i) { html += `<td></td>`; return; }
+      const base = `height:${cellSize}px;text-align:center;vertical-align:middle;border-radius:4px;box-sizing:border-box;cursor:default;`;
+      if (i === j) {
+        html += `<td style="${base}background:var(--surface2);color:var(--text3);font-weight:700;font-size:12px;border:1px solid var(--border)">1.00</td>`;
+        return;
+      }
       const rVal = mat[f1]?.[f2] ?? mat[f2]?.[f1] ?? 0;
       const bg = getCellColor(rVal);
       const textColor = (isPositiveOnly ? rVal : Math.abs(rVal)) > 0.45 ? 'rgba(255,255,255,0.95)' : 'var(--text)';
-
-      html += `<td title="${f1} × ${f2}: ${methodLabel} = ${rVal.toFixed(4)}"
-        style="width:${cellSize}px;height:${cellSize}px;text-align:center;background:${bg};color:${textColor};font-weight:700;border:1px solid rgba(255,255,255,0.3);cursor:default;font-size:11px;box-sizing:border-box;"
-        onmouseover="this.style.outline='2.5px solid var(--text)';this.style.zIndex='2';this.style.position='relative';"
-        onmouseout="this.style.outline='';this.style.zIndex='';this.style.position='';"
+      html += `<td title="${escapeHtml(f1)} × ${escapeHtml(f2)}: ${methodLabel} = ${rVal.toFixed(4)}"
+        style="${base}background:${bg};color:${textColor};font-weight:700;font-size:12px;"
+        onmouseover="this.style.outline='2px solid var(--text)';this.style.outlineOffset='-1px';"
+        onmouseout="this.style.outline='';"
       >${rVal.toFixed(2)}</td>`;
     });
     html += `</tr>`;
   });
 
-  html += `</table><div style="margin-top:10px;font-size:11px;font-family:var(--font-sans);color:var(--text3)">`;
-  html += `Alt üçgen matris &nbsp;|&nbsp; Hücre üzerine gelin: tam değer &nbsp;|&nbsp; Köşegen = 1.00 &nbsp;|&nbsp; ${n} gözlem`;
-  if (isPositiveOnly) html += ` &nbsp;|&nbsp; Min renk = 0 (bağımsız), Max renk = 1 (güçlü ilişki)`;
-  html += `</div></div>`;
+  html += `<tr><td></td>${fields.map(f => `<td style="${lblStyle}text-align:center;padding-top:6px;overflow:visible">${escapeHtml(f)}</td>`).join('')}</tr>`;
+  html += `</table>`;
+
+  const lo = isPositiveOnly ? 0 : -1;
+  const stops = 11;
+  const grad = Array.from({ length: stops }, (_, k) => getCellColor(lo + (1 - lo) * k / (stops - 1))).join(',');
+  html += `<div style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:10.5px;font-family:var(--font-sans);color:var(--text3)">`;
+  html += `<span>${lo === 0 ? '0' : '−1'}</span>`;
+  html += `<div style="width:180px;height:10px;border-radius:3px;border:1px solid var(--border);background:linear-gradient(90deg,${grad})"></div>`;
+  html += `<span>+1</span><span style="margin-left:10px">Hücre üzerine gelin: tam değer</span></div>`;
+  html += `</div>`;
   wrap.innerHTML = html;
 }
 
