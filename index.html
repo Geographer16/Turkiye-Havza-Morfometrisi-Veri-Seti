@@ -538,6 +538,8 @@
   .wid-cell:hover { background: var(--accent-light); }
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: var(--accent-light); }
+  .corr-tbl td { padding: 0; border: none; white-space: nowrap; word-break: normal; overflow-wrap: normal; }
+  .corr-tbl tr:hover td { background: transparent; }
   .table-footer {
     padding: 9px 15px; font-size: 12px; color: var(--text2);
     border-top: 1px solid var(--border); font-family:var(--font-sans);
@@ -5076,7 +5078,7 @@ function _renderCorrMatrix(fields, method, mat, n) {
   };
   const methodLabel    = methodLabels[method] || method;
   const isPositiveOnly = method === 'dcor' || method === 'mic';
-  const cellSize = 56, labelW = 84, gap = 2;
+  const cellW = 46, cellH = 34, labelW = 72, gap = 2;
 
   function getCellColor(val) {
     if (isPositiveOnly) {
@@ -5091,7 +5093,7 @@ function _renderCorrMatrix(fields, method, mat, n) {
   }
 
   const nF = fields.length;
-  const tableW = labelW + nF * cellSize + (nF + 2) * gap;
+  const tableW = labelW + nF * cellW + (nF + 2) * gap;
   const lblStyle = 'font-size:11px;font-weight:700;color:var(--text2);white-space:nowrap;';
 
   let html = `<div style="padding:16px;overflow-x:auto;background:var(--surface)">`;
@@ -5101,23 +5103,23 @@ function _renderCorrMatrix(fields, method, mat, n) {
   if (method === 'partial') html += ` &nbsp;<span style="font-weight:400;color:var(--text3)">(diğer değişkenlerin etkisi giderilmiş)</span>`;
   html += `</p>`;
 
-  html += `<table style="border-collapse:separate;border-spacing:${gap}px;table-layout:fixed;width:${tableW}px;font-family:var(--font-sans);">`;
-  html += `<colgroup><col style="width:${labelW}px">${fields.map(() => `<col style="width:${cellSize}px">`).join('')}</colgroup>`;
+  html += `<table class="corr-tbl" style="border-collapse:separate;border-spacing:${gap}px;table-layout:fixed;width:${tableW}px;font-family:var(--font-sans);">`;
+  html += `<colgroup><col style="width:${labelW}px">${fields.map(() => `<col style="width:${cellW}px">`).join('')}</colgroup>`;
 
   fields.forEach((f1, i) => {
-    html += `<tr style="height:${cellSize}px"><td style="${lblStyle}text-align:right;padding-right:8px;vertical-align:middle">${escapeHtml(f1)}</td>`;
+    html += `<tr style="height:${cellH}px"><td style="${lblStyle}text-align:right;padding-right:8px;vertical-align:middle">${escapeHtml(f1)}</td>`;
     fields.forEach((f2, j) => {
       if (j > i) { html += `<td></td>`; return; }
-      const base = `height:${cellSize}px;text-align:center;vertical-align:middle;border-radius:4px;box-sizing:border-box;cursor:default;`;
+      const base = `height:${cellH}px;text-align:center;vertical-align:middle;border-radius:4px;box-sizing:border-box;cursor:default;`;
       if (i === j) {
-        html += `<td style="${base}background:var(--surface2);color:var(--text3);font-weight:700;font-size:12px;border:1px solid var(--border)">1.00</td>`;
+        html += `<td style="${base}background:var(--surface2);color:var(--text3);font-weight:700;font-size:11px;border:1px solid var(--border)">1.00</td>`;
         return;
       }
       const rVal = mat[f1]?.[f2] ?? mat[f2]?.[f1] ?? 0;
       const bg = getCellColor(rVal);
       const textColor = (isPositiveOnly ? rVal : Math.abs(rVal)) > 0.45 ? 'rgba(255,255,255,0.95)' : 'var(--text)';
       html += `<td title="${escapeHtml(f1)} × ${escapeHtml(f2)}: ${methodLabel} = ${rVal.toFixed(4)}"
-        style="${base}background:${bg};color:${textColor};font-weight:700;font-size:12px;"
+        style="${base}background:${bg};color:${textColor};font-weight:700;font-size:11px;"
         onmouseover="this.style.outline='2px solid var(--text)';this.style.outlineOffset='-1px';"
         onmouseout="this.style.outline='';"
       >${rVal.toFixed(2)}</td>`;
