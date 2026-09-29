@@ -30,6 +30,7 @@
   font-src 'self' https://fonts.gstatic.com;
   img-src 'self' data: blob: https://*.tile.opentopomap.org https://server.arcgisonline.com;
   connect-src 'self' https://*.tile.opentopomap.org https://server.arcgisonline.com;
+  worker-src 'self' blob:;
   object-src 'none';
   base-uri 'self';
   form-action 'self';
@@ -41,18 +42,6 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css"/>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
-<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/proj4@2.11.0/dist/proj4.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/leaflet-image@0.4.0/leaflet-image.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/shpjs@6.1.0/dist/shp.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mapbox/shp-write@0.4.3/shpwrite.js"></script>
 <style>
   :root {
     --bg: #f2eee3;
@@ -845,9 +834,8 @@
 </div>
 <script>
 /* Açılış animasyonu: yağış → yamaçlardan kollara toplanma → ana kol → çıkışta taşkın yayılımı */
-(function(){
-  var cv=document.getElementById('sp-canvas'); if(!cv||!cv.getContext) return;
-  var ctx=cv.getContext('2d'), W=400, H=280, dpr=Math.min(window.devicePixelRatio||1,2);
+function spCore(cv,W,H,dpr,env,raf,still0){
+  var ctx=cv.getContext('2d'), stopped=false;
   cv.width=W*dpr; cv.height=H*dpr; ctx.scale(dpr,dpr);
 
   var basin=new Path2D('M60 40 C110 8 290 8 345 40 C390 80 350 140 262 168 C240 176 232 182 228 190 L172 190 C168 182 160 176 138 168 C50 140 20 80 60 40 Z');
@@ -891,9 +879,9 @@
   }
 
   function render(t,dt,still,time){
-    var dark=document.documentElement.classList.contains('dark-mode');
+    var dark=env.dark;
     var wc=dark?'109,182,216':'47,127,168', rc=dark?'156,199,220':'91,143,168';
-    if(frameNo++%60===0){ var a=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(); if(a) accent=a; }
+    accent=env.accent||accent;
     var g=still?1:Math.min(1,t/0.5)*Math.min(1,(T-t)/1.0);
     var rain=still?0:ss(0,1.5,t)*(1-ss(T-3,T-1.2,t));
     var vol=still?1:0.15+0.85*ss(0.4,5,t);
@@ -948,14 +936,15 @@
       while(pAcc>=1&&parts.length<320){pAcc--; parts.push({r:routes[Math.floor(Math.random()*routes.length)],i:Math.random()*6,k:0.8+Math.random()*0.5});}
       pAcc=Math.min(pAcc,3);
       ctx.fillStyle='rgba('+wc+',0.9)';
-      var rad=1.3+0.9*vol;
+      var rad=1.3+0.9*vol; ctx.beginPath();
       for(var m=parts.length-1;m>=0;m--){
         var pt=parts[m]; pt.i+=(16+30*vol)*pt.k*dt;
         var L=pt.r.pts.length-1;
         if(pt.i>=L){parts.splice(m,1);continue;}
         var ii=Math.floor(pt.i), fr=pt.i-ii, A=pt.r.pts[ii], B=pt.r.pts[ii+1];
-        ctx.beginPath(); ctx.arc(A[0]+(B[0]-A[0])*fr, A[1]+(B[1]-A[1])*fr, rad, 0, 6.2832); ctx.fill();
+        var px=A[0]+(B[0]-A[0])*fr, py=A[1]+(B[1]-A[1])*fr; ctx.moveTo(px+rad,py); ctx.arc(px,py,rad,0,6.2832);
       }
+      ctx.fill();
     }
 
     /* havza sınırı */
@@ -963,20 +952,75 @@
     ctx.globalAlpha=1;
   }
 
-  if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches){ render(0,0,true,0); return; }
+  if(still0){ render(0,0,true,0); return {stop:function(){}, setEnv:function(){}}; }
 
   function frame(now){
-    if(!cv.isConnected) return;
+    if(stopped) return;
     if(!t0){t0=now; last=now;}
     var dt=Math.min(0.05,(now-last)/1000); last=now;
     var el=(now-t0)/1000, cyc=Math.floor(el/T), t=el%T;
     if(cyc!==lastCyc){lastCyc=cyc; drops=[]; ripples=[]; parts=[];}
     render(t,dt,false,el);
-    requestAnimationFrame(frame);
+    raf(frame);
   }
-  requestAnimationFrame(frame);
+  raf(frame);
+  return {stop:function(){stopped=true;}, setEnv:function(e){env.dark=e.dark; env.accent=e.accent;}};
+}
+
+/* Animasyon ana thread yerine Web Worker + OffscreenCanvas uzerinde calisir:
+   veri ayristirma/harita islemleri ana thread'i kilitlese bile akici kalir. */
+(function(){
+  var cv=document.getElementById('sp-canvas'); if(!cv||!cv.getContext) return;
+  var W=400, H=280, dpr=Math.min(window.devicePixelRatio||1,2), root=document.documentElement;
+  function readEnv(){ return {dark:root.classList.contains('dark-mode'), accent:(getComputedStyle(root).getPropertyValue('--accent')||'').trim()||'#9c5a34'}; }
+  var env=readEnv(), worker=null, handle=null;
+  var reduced=window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var canWorker=false;
+  try{ canWorker=!reduced && !!(window.Worker && window.OffscreenCanvas && cv.transferControlToOffscreen && typeof Path2D!=='undefined' && new OffscreenCanvas(1,1).getContext('2d')); }catch(e){}
+
+  if(canWorker){
+    try{
+      var wsrc='var spCore='+spCore.toString()+';var h=null;'+
+        'var raf=self.requestAnimationFrame?function(f){return self.requestAnimationFrame(f);}:function(f){return setTimeout(function(){f(performance.now());},16);};'+
+        'onmessage=function(e){var m=e.data;'+
+        'if(m.cv){h=spCore(m.cv,m.W,m.H,m.dpr,m.env,raf,false);}'+
+        'else if(m.env&&h){h.setEnv(m.env);}'+
+        'else if(m.stop){if(h)h.stop();self.close();}};';
+      worker=new Worker(URL.createObjectURL(new Blob([wsrc],{type:'text/javascript'})));
+      var off=cv.transferControlToOffscreen();
+      worker.postMessage({cv:off,W:W,H:H,dpr:dpr,env:env},[off]);
+    }catch(e){ worker=null; }
+  }
+  if(!worker){
+    handle=spCore(cv,W,H,dpr,env,function(f){return requestAnimationFrame(f);},!!reduced);
+  }
+
+  if(window.MutationObserver){
+    new MutationObserver(function(){
+      var e=readEnv();
+      if(worker) worker.postMessage({env:e}); else if(handle) handle.setEnv(e);
+    }).observe(root,{attributes:true,attributeFilter:['class']});
+  }
+  window._spStop=function(){
+    if(worker){ worker.postMessage({stop:1}); var w=worker; worker=null; setTimeout(function(){w.terminate();},100); }
+    if(handle) handle.stop();
+  };
 })();
 </script>
+
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/proj4@2.11.0/dist/proj4.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet-image@0.4.0/leaflet-image.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/shpjs@6.1.0/dist/shp.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mapbox/shp-write@0.4.3/shpwrite.js"></script>
 
 <header>
   <div class="header-inner" style="padding-left:0;">
@@ -5419,7 +5463,7 @@ function hideSplash() {
   if (!el || el.classList.contains('hide')) return;
   setSplash(100, 'Hazır');
   const wait = Math.max(0, 8000 - (performance.now() - _splashStart));
-  setTimeout(() => { el.classList.add('hide'); setTimeout(() => el.remove(), 700); }, wait);
+  setTimeout(() => { el.classList.add('hide'); setTimeout(() => { window._spStop && window._spStop(); el.remove(); }, 700); }, wait);
 }
 setTimeout(hideSplash, 30000);
 
