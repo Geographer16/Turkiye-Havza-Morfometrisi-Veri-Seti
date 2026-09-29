@@ -2,14 +2,12 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Türkiye Akarsu Morfometrisi Veri Tabanı</title>
 
-<!-- FAVICON: mevcut kurum logosu kullanılıyor, ekstra dosya gerekmez -->
 <link rel="icon" type="image/png" href="Data/HM_V2.png">
 <link rel="apple-touch-icon" href="Data/HM_V2.png">
 
-<!-- SEO / PAYLAŞIM ÖNİZLEMESİ (Open Graph + Twitter Card) -->
 <meta name="description" content="Türkiye'deki akarsu havzalarına ait morfometrik parametrelerin (drenaj yoğunluğu, Strahler derecesi, eğim, iklim ve topoğrafya verileri dahil) interaktif harita üzerinden incelenebildiği, karşılaştırılabildiği ve indirilebildiği açık veri tabanı.">
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="https://geographer16.github.io/Turkiye-Havza-Morfometrisi-Veri-Seti/">
@@ -25,13 +23,6 @@
 <meta name="twitter:title" content="Türkiye Akarsu Morfometrisi Veri Tabanı">
 <meta name="twitter:description" content="Türkiye'deki akarsu havzalarına ait morfometrik parametrelerin interaktif harita üzerinden incelenebildiği, karşılaştırılabildiği ve indirilebildiği açık veri tabanı.">
 <meta name="twitter:image" content="https://geographer16.github.io/Turkiye-Havza-Morfometrisi-Veri-Seti/Data/HM_V2.png">
-<!--
-  Content-Security-Policy: yalnızca bu sayfanın fiilen kullandığı kaynaklara izin verir
-  (jsDelivr script/stil, Google Fonts, OSM/OpenTopoMap/Esri tile sunucuları, kendi verisi).
-  'unsafe-inline' script-src'de gereklidir çünkü sayfa inline <script> blokları içeriyor;
-  harici script enjeksiyonu (XSS ile üçüncü taraf domainden kod çalıştırma) yine de engellenir
-  çünkü script-src başka hiçbir origin'e izin vermiyor.
--->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'self';
   script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
@@ -44,15 +35,6 @@
   form-action 'self';
   frame-ancestors 'self';
 ">
-<!--
-  GÜVENLİK NOTU — Subresource Integrity (SRI):
-  Aşağıdaki 12 script/stil etiketine integrity="sha384-REPLACE_..." placeholder'ı eklendi.
-  YAYINDAN ÖNCE HER BİRİNİ GERÇEK HASH İLE DEĞİŞTİRİN, aksi halde tarayıcı dosyaları
-  YÜKLEMEYİ REDDEDER (boş hash gerçek hash'ten farklı sayılır) ve site tamamen bozulur.
-  En hızlı yol: https://www.jsdelivr.com/package/npm/<paket-adı> sayfasında ilgili
-  sürüm + dosyayı seçip "Copy SRI Hash" ile kopyalayın. Alternatif (terminalde):
-    curl -s <URL> | openssl dgst -sha384 -binary | openssl base64 -A
--->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -70,13 +52,6 @@
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet-image@0.4.0/leaflet-image.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/shpjs@6.1.0/dist/shp.min.js"></script>
-<!--
-  NOT: shpjs (yukarıda) yalnızca shapefile OKUR (parse eder) ve global 'shp'
-  fonksiyonunu sağlar — bu, aşağıdaki Basin_General.shp referans katmanını
-  yüklemek için kullanılıyor. "Seçili Havzayı İndir" panelindeki Shapefile
-  EXPORT özelliği ise shpwrite.zip() API'sini gerektirir, bu tamamen farklı
-  bir pakette (@mapbox/shp-write) bulunur — ikisi karıştırılmamalı.
--->
 <script src="https://cdn.jsdelivr.net/npm/@mapbox/shp-write@0.4.3/shpwrite.js"></script>
 <style>
   :root {
@@ -104,9 +79,6 @@
     --font-sans: 'IBM Plex Sans', sans-serif;
     --font-mono: 'IBM Plex Mono', monospace;
   }
-  /* KARANLIK MOD: aynı tasarım tokenları koyu zeminde yeniden tanımlanır.
-     Sıcak/toprak tonlu vurgu rengi (--accent) korunur, sadece yüzey/metin
-     kontrastları koyu temaya uyarlanır. html.dark-mode ile aktifleşir. */
   html.dark-mode {
     --bg: #161310;
     --surface: #1f1c18;
@@ -127,16 +99,11 @@
     --red-text: #f5a99c;
     --green-text: #9fd6ac;
   }
-  /* header, kart rozetleri gibi "her zaman koyu zemin" bekleyen bileşenler
-     için ayrı bir token: --accent2 açık temada koyu metin/koyu zemin, karanlık
-     temada ise (yukarıda) açık bir vurgu metni rengi olduğundan, sabit koyu
-     zemin gereken yerlerde onun yerine bu kullanılır. */
   :root { --surface-dark: #1e2a33; }
   html.dark-mode { --surface-dark: #0f0d0b; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: var(--font-sans); background: var(--bg); color: var(--text); min-height: 100vh; transition: background 0.2s, color 0.2s; }
 
-  /* HEADER */
   header {
     background: var(--surface-dark);
     color: white;
@@ -189,7 +156,6 @@
   }
   #theme-toggle-btn:hover { background: rgba(255,255,255,0.22); }
 
-  /* HERO */
   .hero {
     background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='200' viewBox='0 0 400 200'%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='1' opacity='0.09'%3E%3Cpath d='M0 40 Q60 55 90 90 T190 100'/%3E%3Cpath d='M90 90 Q105 130 130 175'/%3E%3Cpath d='M190 100 Q230 60 280 75 T400 40'/%3E%3Cpath d='M280 75 Q295 120 315 165'/%3E%3Cpath d='M315 165 Q335 135 365 145'/%3E%3C/g%3E%3C/svg%3E") repeat, var(--surface-dark);
     background-size: 400px 200px, auto;
@@ -200,7 +166,6 @@
   .hero-badges { display: flex; justify-content: center; gap: 9px; flex-wrap: wrap; }
   .badge { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); padding: 4px 13px; border-radius: 20px; font-size: 12px; font-family: var(--font-sans); }
 
-  /* STATS ROW */
   .stats-row { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 24px; }
   .stats-inner { max-width: 1300px; margin: 0 auto; display: flex; gap: 28px; align-items: center; justify-content: center; flex-wrap: wrap; }
   .stat-item { text-align: center; }
@@ -208,7 +173,6 @@
   .stat-lbl { font-size: 10.5px; color: var(--text2); font-family: var(--font-sans); text-transform: uppercase; letter-spacing: 0.6px; margin-top: 2px; }
   .stat-divider { width: 1px; height: 34px; background: var(--border); }
 
-  /* UPLOAD BAR */
   .upload-bar {
     background: var(--surface2);
     border-bottom: 1px solid var(--border);
@@ -249,15 +213,12 @@
   .upload-card input[type=file] { font-size: 11px; font-family:var(--font-sans); width: 100%; }
   .ucard-status { font-size: 10px; font-family:var(--font-sans); color: var(--text3); min-height: 14px; }
 
-  /* MAIN */
   .main { width: 100%; padding: 0; }
   .tab-pane { display: none; }
   .tab-pane.active { display: block; }
 
-  /* Harita dışı tablar için içerik sarmalayıcı */
   .tab-inner { max-width: 1300px; margin: 0 auto; padding: 14px 16px; }
 
-  /* MAP LAYOUT — tam ekran genişliği */
   .map-layout {
     display: grid;
     grid-template-columns: 260px 1fr;
@@ -283,7 +244,6 @@
   .sidebar-left, .sidebar-right { display: flex; flex-direction: column; gap: 14px; }
 
   .map-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; }
-  /* Kartografik referans çentiği: kart köşelerinde harita koordinat işareti motifi */
   .map-card, .table-wrap, .chart-card, .about-card, .dl-card { position: relative; }
   .map-card::before, .table-wrap::before, .chart-card::before, .about-card::before, .dl-card::before,
   .map-card::after, .table-wrap::after, .chart-card::after, .about-card::after, .dl-card::after {
@@ -314,9 +274,8 @@
   }
   .chart-dl-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
   .map-ratio-wrap { width: 100%; position: relative; }
-  #map { width: 100%; height: 500px; /* JS tarafından 16:9 olarak güncellenir */ }
+  #map { width: 100%; height: 500px; }
 
-  /* HARİTA İÇİ LEJANT (sağ alt köşe) */
   .map-inline-legend {
     position: absolute; right: 10px; bottom: 22px; z-index: 450;
     background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
@@ -343,7 +302,6 @@
 
   .map-search-icon { font-size: 13px; color: var(--text3); flex-shrink: 0; }
 
-  /* ALAN ÇİZEREK SEÇİM ARACI */
   .draw-tool-btn.active {
     background: var(--accent) !important; color: #fff !important; border-color: var(--accent) !important;
   }
@@ -364,7 +322,6 @@
   #draw-mode-menu button:last-child { border-bottom: none; }
   #draw-mode-menu button:hover { background: var(--accent-light); color: var(--accent2); }
 
-  /* Çizim sırasında haritanın üstünde çıkan talimat/durum çubuğu */
   #draw-status-bar {
     position: absolute; left: 50%; top: 12px; transform: translateX(-50%);
     z-index: 650; display: none;
@@ -432,13 +389,11 @@
     #map-wid-search-msg { bottom: 10px; max-width: 94%; }
   }
 
-  /* SIDEBAR */
   .sidebar { display: flex; flex-direction: column; gap: 14px; }
   .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
   .panel-body { padding: 13px 15px; }
   .panel-body p { font-size: 13px; color: var(--text2); line-height: 1.6; font-family:var(--font-sans); margin-bottom: 9px; }
 
-  /* LAYER CONTROLS */
   .layer-list { list-style: none; }
   .layer-item { display: flex; align-items: center; gap: 9px; padding: 7px 0; border-bottom: 1px solid var(--border); font-family:var(--font-sans); font-size: 13px; }
   .layer-item:last-child { border-bottom: none; }
@@ -446,7 +401,6 @@
   .layer-item label { flex: 1; cursor: pointer; }
   .layer-item input[type=checkbox] { cursor: pointer; }
 
-  /* FEATURE INFO */
   #feature-info { font-family:var(--font-sans); font-size: 13px; }
   #feature-info .no-sel { color: var(--text3); font-style: italic; }
   .prop-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--border); }
@@ -454,7 +408,6 @@
   .prop-key { color: var(--text2); font-size: 12px; }
   .prop-val { font-weight: 600; font-size: 12px; color: var(--text); text-align: right; max-width: 160px; word-break: break-word; }
 
-  /* HAVZA HIGHLIGHT PANEL */
   #watershed-highlight {
     display: none;
     background: var(--accent-light);
@@ -472,11 +425,9 @@
   .wh-two-col .prop-row:nth-last-child(2):nth-child(odd) { border-bottom: none; }
   .wh-two-col .prop-key { font-size: 11px; }
   .wh-two-col .prop-val { font-size: 11px; max-width: 80px; }
-  /* parametre sayısı tekse son satır iki sütunu birden kaplar */
   .wh-two-col .prop-row:last-child:nth-child(odd) { grid-column: 1 / -1; }
   .wh-two-col .prop-row:last-child:nth-child(odd) .prop-val { max-width: none; }
 
-  /* İNDİRME ÇUBUĞU (Seçili Havzayı İndir) */
   #download-bar {
     display: none;
     background: var(--surface2);
@@ -518,7 +469,6 @@
   .dlbar-poly-row button:hover { background: var(--accent); color: white; }
   .dlbar-note { font-size: 11px; font-family:var(--font-sans); color: var(--text3); margin-top: 6px; }
 
-  /* PAYLAŞIM BAĞLANTISI MODALI */
   #share-modal-overlay {
     position: fixed; inset: 0; z-index: 2000;
     background: rgba(0,0,0,0.5);
@@ -584,7 +534,6 @@
   }
   .dlbar-gpkg-hint a { color: var(--accent2); text-decoration: underline; }
 
-  /* TABLE */
   .table-controls { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
   .table-controls input {
     flex: 1; min-width: 180px; padding: 7px 12px;
@@ -635,14 +584,12 @@
     display: flex; justify-content: space-between; align-items: center;
   }
 
-  /* CHARTS */
   .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 18px; }
   .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
   .chart-body { padding: 16px; }
   .chart-body canvas { max-height: 230px; }
   .stat-summary-box { font-family:var(--font-sans); font-size: 13px; color: var(--text2); }
 
-  /* DOWNLOAD */
   .dl-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 26px; }
   .dl-card {
     background: var(--surface); border: 1px solid var(--border);
@@ -667,7 +614,6 @@
   .btn-github-outline { background: transparent; color: #24292f; border: 1.5px solid #24292f; }
   .btn-zenodo-outline:hover, .btn-github-outline:hover { opacity: 1; background: rgba(0,0,0,0.04); }
 
-  /* CITE */
   .cite-box {
     background: var(--surface2); border: 1px solid var(--border);
     border-left: 4px solid var(--accent); border-radius: var(--radius);
@@ -681,13 +627,11 @@
     border-radius: var(--radius-sm); cursor: pointer;
   }
 
-  /* ABOUT */
   .about-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 22px; }
   @media (max-width: 700px) { .about-grid { grid-template-columns: 1fr; } }
   .about-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; }
   .about-card h3 { font-size: 16px; margin-bottom: 11px; font-family: var(--font-serif); font-weight: 600; color: var(--accent2); }
   .about-card p { font-size: 14px; line-height: 1.8; color: var(--text2); font-family:var(--font-sans); margin-bottom: 9px; }
-  /* AÇILIŞ EKRANI */
   #splash { position:fixed; inset:0; z-index:99999; background:var(--bg); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:14px; padding:24px; text-align:center; transition:opacity .55s ease, visibility .55s; }
   #splash.hide { opacity:0; visibility:hidden; pointer-events:none; }
   #splash svg { width:min(300px,70vw); height:auto; overflow:visible; }
@@ -704,7 +648,50 @@
   @keyframes spDraw { to { stroke-dashoffset:0; } }
   @keyframes spPulse { 0%,100% { transform:scale(1); opacity:1; } 50% { transform:scale(1.9); opacity:.45; } }
   @media (prefers-reduced-motion: reduce) { #splash .sp-river, #splash .sp-pt { animation:none; } #splash .sp-basin { animation:none; stroke-dashoffset:0; } }
-  /* TEKNİK BİLGİ (TUCBS metaveri) */
+  @media (max-width: 700px) {
+    .header-inner { flex-direction:column; align-items:stretch; gap:8px; padding:8px 12px !important; }
+    .header-icon, .header-sub { display:none; }
+    .header-title { font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    nav { flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; margin:0 -12px; padding:0 12px; }
+    nav::-webkit-scrollbar { display:none; }
+    nav button { flex:0 0 auto; min-height:38px; padding:6px 14px; }
+
+    input, select, textarea { font-size:16px !important; }
+
+    .map-card > .card-header { flex-direction:column; align-items:stretch; gap:8px; }
+    .map-card > .card-header > div:first-child, .map-search-icon { display:none !important; }
+    .map-card .card-header span[style*="width:1px"] { display:none !important; }
+    #map-wid-search { flex:1 1 60% !important; width:auto !important; min-width:0; }
+    #map-wid-suggestions { left:0 !important; right:0 !important; min-width:0 !important; }
+    .map-card .card-header button, .map-card .card-header select { min-height:38px; }
+
+    .leaflet-bottom { bottom:58px; }
+    .map-inline-legend { bottom:70px !important; }
+    #map-wid-search-msg { bottom:70px !important; }
+    .leaflet-touch .leaflet-bar a { width:40px; height:40px; line-height:40px; }
+    .map-layout { padding-bottom:calc(64px + env(safe-area-inset-bottom, 0px)); }
+
+    .sidebar-left {
+      position:fixed; left:0; right:0; bottom:0; z-index:1200; gap:0;
+      --peek: calc(52px + env(safe-area-inset-bottom, 0px));
+      transform:translateY(calc(100% - var(--peek)));
+      transition:transform .28s cubic-bezier(.2,.8,.2,1);
+      filter:drop-shadow(0 -4px 14px rgba(0,0,0,.22));
+    }
+    .sidebar-left.open { transform:none; }
+    .sidebar-left .panel { border-radius:16px 16px 0 0; border-bottom:none; display:flex; flex-direction:column; max-height:68vh; max-height:68dvh; }
+    .sidebar-left .card-header { position:relative; min-height:52px; padding-top:14px; cursor:pointer; flex-shrink:0; }
+    .sidebar-left .card-header::before { content:''; position:absolute; top:6px; left:50%; width:38px; height:4px; border-radius:4px; background:var(--border); transform:translateX(-50%); }
+    .sidebar-left .card-header::after { content:'▴'; margin-left:auto; color:var(--text3); transition:transform .28s; }
+    .sidebar-left.open .card-header::after { transform:rotate(180deg); }
+    .sidebar-left .panel-body { overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; padding-bottom:calc(16px + env(safe-area-inset-bottom, 0px)); }
+    .sidebar-left button, .sidebar-left select { min-height:42px; }
+
+    .table-wrap { -webkit-overflow-scrolling:touch; overscroll-behavior-x:contain; }
+    .table-wrap th, .table-wrap td { padding:7px 9px; }
+    .col-resize-handle { width:18px; }
+    .tab-inner { padding:10px 10px; }
+  }
   .tm-intro { font-size:12.5px !important; line-height:1.6 !important; margin-bottom:10px !important; }
   #tech-meta details { border-top:1px solid var(--border); }
   #tech-meta details:last-of-type { border-bottom:1px solid var(--border); }
@@ -720,14 +707,12 @@
   .about-card ul { padding-left: 16px; }
   .about-card li { font-size: 13px; color: var(--text2); font-family:var(--font-sans); line-height: 1.8; }
 
-  /* LEGEND */
   .legend-title { font-size: 12px; font-weight: 600; font-family:var(--font-sans); margin-bottom: 7px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
   .legend-row { display: flex; align-items: center; gap: 7px; padding: 3px 0; font-size: 12px; font-family:var(--font-sans); color: var(--text2); }
   .legend-line { width: 22px; height: 3px; border-radius: 2px; }
   .legend-circle { width: 10px; height: 10px; border-radius: 50%; }
   .legend-square { width: 12px; height: 12px; border-radius: 2px; }
 
-  /* NOTICE */
   .notice {
     background: var(--amber-light); border: 1px solid #e6c88a;
     border-radius: var(--radius-sm); padding: 9px 13px;
@@ -741,7 +726,6 @@
   }
   .section-title:first-child { margin-top: 0; }
 
-  /* Seçili nokta animasyonu */
   @keyframes pulse-ring {
     0%   { stroke-opacity: 0.7; r: 16; }
     70%  { stroke-opacity: 0.1; r: 24; }
@@ -749,7 +733,6 @@
   }
   .selected-ring circle { animation: pulse-ring 1.8s ease-out infinite; }
 
-  /* ── Bileşim (iklim / arazi örtüsü) bileşenleri ── */
   .comp-block { margin-top: 10px; }
   .comp-title { display:flex; justify-content:space-between; align-items:baseline; gap:8px; font-weight:600; font-size:12px; color:var(--text); margin-bottom:5px; }
   .comp-sum { font-weight:500; font-size:10.5px; color:var(--text3); white-space:nowrap; }
@@ -782,14 +765,12 @@
   .prof-canvas-wrap { position:relative; height:240px; }
   .prof-empty { padding:26px 8px; text-align:center; color:var(--text3); font-size:12.5px; font-family:var(--font-sans); }
 
-  /* Basemap select */
   .basemap-select {
     width: 100%; padding: 6px 10px; border: 1px solid var(--border);
     border-radius: var(--radius-sm); font-size: 13px; font-family:var(--font-sans);
     background: var(--surface); color: var(--text);
   }
 
-  /* Çoklu seçim bilgi çubuğu */
   #multi-select-bar {
     display: none;
     background: var(--accent-light);
@@ -821,7 +802,6 @@
   #multi-select-summary .mss-warn { color: var(--amber); }
   #multi-select-summary .mss-sep { opacity: 0.4; }
 
-  /* Çoklu seçim karşılaştırma tablosu — harita altı tam genişlik panel */
   #compare-panel {
     display: block;
     background: var(--surface);
@@ -876,10 +856,6 @@
   .compare-hint { font-size: 12px; color: var(--text3); font-family:var(--font-sans); padding: 9px 18px; border-top: 1px solid var(--border); background: var(--surface2); }
 </style>
 <script>
-  // Karanlık mod tercihi <body> render edilmeden ÖNCE uygulanır ki sayfa önce
-  // açık temayla çizilip sonra karanlık temaya geçerken görünen "flaş/titreme"
-  // (FOUC) yaşanmasın. Kayıtlı bir tercih yoksa tarayıcının/işletim sisteminin
-  // sistem temasına (prefers-color-scheme) bakılır.
   (function() {
     try {
       const saved = localStorage.getItem('thm-dark-mode');
@@ -905,7 +881,6 @@
   <div class="sp-sub" id="splash-text">Başlatılıyor…</div>
 </div>
 
-
 <header>
   <div class="header-inner" style="padding-left:0;">
     <div class="header-brand">
@@ -930,22 +905,14 @@
   </div>
 </header>
 
-
-
-
-
-
-
 <div class="main">
 <span id="stat-watersheds" style="display:none"></span>
 <span id="stat-points" style="display:none"></span>
 <span id="stat-fields" style="display:none"></span>
 
-  <!-- MAP TAB -->
   <div id="tab-map" class="tab-pane active">
     <div class="map-layout">
 
-      <!-- SOL: Seçili Nokta -->
       <div class="sidebar sidebar-left">
         <div class="panel">
           <div class="card-header"><span>📌</span><h3>Seçili Nokta</h3></div>
@@ -983,7 +950,6 @@
 
       </div>
 
-      <!-- ORTA: Harita -->
       <div class="map-card">
         <div class="card-header">
           <div style="display:flex;align-items:center;gap:9px;"><span>🗺</span><h3>İnteraktif Harita</h3></div>
@@ -1034,7 +1000,6 @@
 
     </div>
 
-    <!-- Karşılaştırma Paneli — haritanın altında tam genişlik -->
     <div id="compare-panel-row">
       <div id="compare-panel">
         <div class="compare-header">
@@ -1052,7 +1017,6 @@
     </div>
   </div>
 
-  <!-- TABLE TAB -->
   <div id="tab-table" class="tab-pane">
    <div class="tab-inner" style="max-width:100%;padding:14px 20px;">
 
@@ -1077,11 +1041,9 @@
    </div>
   </div>
 
-  <!-- CHARTS TAB -->
   <div id="tab-charts" class="tab-pane">
    <div class="tab-inner">
 
-    <!-- Global Filtre Barı -->
     <div id="charts-filter-bar" style="
       background:var(--surface);
       border:1px solid var(--border);
@@ -1102,11 +1064,7 @@
       <span id="charts-filter-badge" style="font-size:12px;color:var(--accent2);font-weight:600;"></span>
     </div>
 
-
-
-
     <div class="charts-grid">
-      <!-- Histogram -->
       <div class="chart-card">
         <div class="card-header">
           <div class="card-header-left"><span>📊</span><h3>Histogram</h3></div>
@@ -1119,7 +1077,6 @@
         </div>
       </div>
 
-      <!-- Kategorik Dağılım -->
       <div class="chart-card">
         <div class="card-header">
           <div class="card-header-left"><span>🥧</span><h3>Kategorik Dağılım</h3></div>
@@ -1133,7 +1090,6 @@
       </div>
     </div>
 
-    <!-- SCATTER PLOT -->
     <div class="section-title" style="margin-top:24px">Scatter Plot — İki Alan Arası İlişki</div>
     <div class="chart-card" style="margin-bottom:18px">
       <div class="card-header">
@@ -1170,7 +1126,6 @@
       </div>
     </div>
 
-    <!-- KORELASYON MATRİSİ -->
     <div class="section-title">Korelasyon Matrisi</div>
     <div class="chart-card" id="corr-card" style="margin-bottom:18px">
       <div class="card-header">
@@ -1179,10 +1134,8 @@
       </div>
       <div class="chart-body" style="padding:14px 16px 8px">
 
-        <!-- Satır 1: Metot + Hesapla -->
         <div style="display:flex;gap:14px;margin-bottom:10px;flex-wrap:wrap;align-items:flex-end;">
 
-          <!-- Metot seçimi -->
           <div style="flex:2;min-width:160px">
             <label style="font-size:11px;font-family:var(--font-sans);color:var(--text2);display:block;margin-bottom:4px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px">Korelasyon Metodu</label>
             <select id="corr-method-sel" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font-sans);background:var(--surface);color:var(--text)">
@@ -1195,7 +1148,6 @@
             </select>
           </div>
 
-          <!-- Hesapla butonu -->
           <div style="min-width:120px;display:flex;flex-direction:column;justify-content:flex-end">
             <button id="corr-calc-btn" onclick="buildCorrMatrix()"
               style="padding:8px 18px;background:var(--accent);color:white;border:none;border-radius:var(--radius-sm);font-size:13px;font-family:var(--font-sans);font-weight:700;cursor:pointer;white-space:nowrap;transition:opacity 0.15s;"
@@ -1205,10 +1157,8 @@
           </div>
         </div>
 
-        <!-- Satır 2: Renk paletleri + özel renk -->
         <div style="display:flex;gap:14px;margin-bottom:8px;flex-wrap:wrap;align-items:flex-end;">
 
-          <!-- Hazır paletler -->
           <div style="flex:1;min-width:260px">
             <label style="font-size:11px;font-family:var(--font-sans);color:var(--text2);display:block;margin-bottom:6px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px">🎨 Renk Paleti</label>
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -1218,7 +1168,6 @@
             </div>
           </div>
 
-          <!-- Özel renk seçimi -->
           <div style="min-width:320px">
             <label style="font-size:11px;font-family:var(--font-sans);color:var(--text2);display:block;margin-bottom:6px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px">✏️ Özel Renk</label>
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -1240,7 +1189,6 @@
             </div>
           </div>
 
-          <!-- Aktif filtre bilgisi -->
           <div style="flex:1;min-width:160px;display:flex;align-items:flex-end">
             <div id="corr-filter-info" style="font-size:11px;font-family:var(--font-sans);color:var(--accent2);font-weight:600;padding-bottom:4px;"></div>
           </div>
@@ -1254,7 +1202,6 @@
       </div>
     </div>
 
-    <!-- BOX PLOT -->
     <div class="section-title">Bar Graph — Strahler Sırasına Göre Dağılım</div>
     <div class="chart-card" style="margin-bottom:18px">
       <div class="card-header">
@@ -1273,7 +1220,6 @@
       </div>
     </div>
 
-    <!-- HAVZA BILESIM PROFILI -->
     <div class="chart-card" id="prof-card" style="margin-bottom:18px;display:none">
       <div class="card-header">
         <div class="card-header-left"><span>◔</span><h3>Havza Bileşim Profili — İklim ve Arazi Örtüsü</h3></div>
@@ -1307,12 +1253,9 @@
    </div>
   </div>
 
-  <!-- DOWNLOAD TAB -->
   <div id="tab-download" class="tab-pane">
    <div class="tab-inner">
 
-    <!-- MANUEL VERİ YÜKLEMESİ (varsayılan gizli — header'daki logoya çift tıklayıp
-         doğru parolayı girerek açılır, bkz. promptDevPanelUnlock) -->
     <div class="upload-bar" id="dev-upload-panel" style="display:none; margin: 0 0 20px 0; border-radius: var(--radius); border: 1px solid var(--border);">
       <div class="upload-inner">
         <span class="upload-label">📂 Manuel Veri Yükleme</span>
@@ -1362,7 +1305,6 @@
     <div class="section-title">İndirme</div>
     <div class="dl-grid" style="grid-template-columns:1fr 1fr;">
 
-      <!-- GitHub Kartı -->
       <div class="dl-card">
         <div class="dl-icon">🐙</div>
         <h4>GitHub</h4>
@@ -1374,7 +1316,6 @@
         </div>
       </div>
 
-      <!-- Zenodo Kartı -->
       <div class="dl-card">
         <div class="dl-icon">🏛</div>
         <h4>Zenodo Arşivi</h4>
@@ -1396,7 +1337,6 @@
    </div>
   </div>
 
-  <!-- ABOUT TAB -->
   <div id="tab-about" class="tab-pane">
    <div class="tab-inner">
     <div class="about-grid">
@@ -1409,24 +1349,19 @@
         </div>
         <div class="about-card" style="padding:0;overflow:hidden;">
           <h3 style="padding:16px 20px 12px;margin:0;border-bottom:1px solid var(--border);">Metodoloji</h3>
-          <!-- Koyu banner: sol siyah (logoyu gizler) -> sağ koyu kırmızı, yumuşak geçiş yazının başladığı noktadan itibaren -->
           <div style="background:linear-gradient(90deg,#0a0a0a 0px,#0a0a0a 220px,#180506 300px,#3a0d10 460px,#6e1219 100%);position:relative;overflow:hidden;min-height:220px;">
-            <!-- Arka dekor: kırmızı daire -->
             <div style="position:absolute;top:-60px;right:-60px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(193,39,45,0.22) 0%,transparent 70%);pointer-events:none;"></div>
             <div style="position:absolute;bottom:-40px;left:180px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(193,39,45,0.10) 0%,transparent 70%);pointer-events:none;"></div>
 
-            <!-- Logo: tam sol kenara yaslı, kutunun tüm yüksekliğinde ortalanır, oranı bozulmaz, siyah zemini navbar'daki gibi blend ile eritilir -->
             <div style="position:absolute;top:0;left:0;bottom:0;width:220px;display:flex;align-items:center;justify-content:center;">
               <img src="Data/HM_V2.png" alt="HydroMachine Logo"
                 style="width:100%;height:100%;object-fit:contain;display:block;mix-blend-mode:screen;filter:contrast(1.25) brightness(0.9);">
             </div>
 
-            <!-- Sağ taraf: logonun genişliği kadar sol boşluk bırakılıyor -->
             <div style="padding:28px 24px 28px 244px;position:relative;z-index:1;">
               <div style="font-size:22px;font-family:'Georgia',serif;font-weight:700;color:#ffffff;line-height:1.2;margin-bottom:6px;">HydroMachine</div>
               <div style="font-size:13px;font-family:sans-serif;color:rgba(255,255,255,0.65);margin-bottom:20px;line-height:1.6;">ArcGIS için geliştirilmiş, havza morfometrisi hesaplamalarını otomatikleştiren bir araçtır. Bu veri tabanındaki morfometrik parametreler HydroMachine ile üretilmiştir.</div>
 
-              <!-- Butonlar -->
               <div style="display:flex;gap:8px;flex-wrap:wrap;">
                 <a href="https://doi.org/10.1007/s12665-025-12352-8" target="_blank"
                   style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:#c1272d;color:white;font-size:12px;font-family:sans-serif;font-weight:700;border-radius:6px;text-decoration:none;transition:opacity 0.15s;"
@@ -1468,20 +1403,13 @@
    </div>
   </div>
 
-</div><!-- /main -->
+</div>
 
 <script>
-// ─── PLUGIN KAYDI ───────────────────────────────────────────────────────────────
-// chartjs-plugin-zoom: scatter plot için tekerlek ile yakınlaştırma/uzaklaştırma
 if (window.Chart && window['chartjs-plugin-zoom']) {
   Chart.register(window['chartjs-plugin-zoom']);
 }
 
-// ─── GÜVENLİK: HTML kaçışlama ──────────────────────────────────────────────────
-// CSV / GeoJSON gibi kullanıcı tarafından yüklenebilen veri kaynaklarından gelen
-// değerler doğrudan innerHTML'e yazılmadan önce bu fonksiyondan geçirilmelidir.
-// Aksi halde bir alan adı veya öznitelik değeri içine gömülü "<script>" ya da
-// "<img onerror=...>" gibi bir payload sayfada çalışabilir (stored/reflected XSS).
 function escapeHtml(value) {
   if (value === null || value === undefined) return '';
   return String(value)
@@ -1492,18 +1420,10 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
-// Tek tırnaklı bir JS string literali içine (örn. onclick="fn('...')") güvenli
-// biçimde gömülecek değer için: hem HTML hem JS string kaçışlaması uygular.
 function escapeJsAttr(value) {
   return escapeHtml(String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
 }
 
-// ─── GÜVENLİK: Poly_OID doğrulaması (path/URL enjeksiyonu koruması) ────────────
-// Poly_OID değeri kullanıcının yükleyebildiği bir GeoJSON/CSV dosyasından gelir
-// ve doğrudan `Data/polygons/${polyOID}.json` yoluna eklenir. Beklenmedik
-// karakterler (../, ?, #, boşluk, aşırı uzun string vb.) içeren bir değerle
-// fetch tetiklenmesini önlemek için sıkı bir whitelist uygulanır: yalnızca
-// harf, rakam, alt çizgi ve tire içeren, makul uzunlukta kimlikler kabul edilir.
 const SAFE_POLY_OID_RE = /^[A-Za-z0-9_-]{1,64}$/;
 
 function sanitizePolyOID(polyOID) {
@@ -1512,38 +1432,27 @@ function sanitizePolyOID(polyOID) {
   return SAFE_POLY_OID_RE.test(s) ? s : null;
 }
 
-// ─── STATE ────────────────────────────────────────────────────────────────────
-let csvData = [];          // [{col:val,...}] – polygon attribute tablosu
-let csvHeaders = [];       // CSV kolon isimleri
-let watershedGeoJSON = null; // Havza GeoJSON (sadece görsel, hafif)
+let csvData = [];
+let csvHeaders = [];
+let watershedGeoJSON = null;
 let riverGeoJSON = null;
 let pointGeoJSON = null;
-let pointEntriesAll = [];       // renderPoints'in olusturdugu tum {props, latlng, marker} kayitlari
-let pointIndexByWID = {};      // { WID_str: {props, latlng, marker} }
-let pointIndexByPolyOID = {};  // { Poly_OID_str: {props, latlng, marker} }
+let pointEntriesAll = [];
+let pointIndexByWID = {};
+let pointIndexByPolyOID = {};
 
-// Havza OBJECTID → satır eşlemesi (nokta tıklamada kullanılır)
-let watershedById = {};    // { OBJECTID_val: {props row from csvData} }
+let watershedById = {};
 
-// Grafik instance'ları
 let numChart = null, catChart = null, histChart = null;
 
-// Tablo sıralama
 let sortCol = null, sortDir = 1;
 let filteredData = [];
 
-// ─── ÇOK NOKTALI SEÇİM STATE ──────────────────────────────────────────────────
-let selectedPoints = [];   // [{props, latlng, marker, highlightLayer}, ...]
-let isMultiSelectMode = false; // Shift basılıyken true
+let selectedPoints = [];
+let isMultiSelectMode = false;
 
-// ─── TEK SEÇİM STATE (indirme özelliği için) ──────────────────────────────────
-let singleSelection = null; // { props, polyOID, csvRow, polyFeature } | null
+let singleSelection = null;
 
-// ─── KARANLIK MOD ─────────────────────────────────────────────────────────────
-// Tema tercihi <html> elementinde 'dark-mode' class'ı ile tutulur (erken <head>
-// script'i FOUC'u önlemek için bunu <body> render edilmeden önce zaten uygulamış
-// olabilir). Burada yalnızca: (1) ikon/aria durumunu senkronlamak ve (2) toggle
-// tıklamasında class'ı değiştirip tercihi kalıcı hale getirmek yapılır.
 function applyThemeIconState() {
   const isDark = document.documentElement.classList.contains('dark-mode');
   const moonIcon = document.getElementById('theme-icon-moon');
@@ -1562,13 +1471,8 @@ function toggleDarkMode() {
   applyThemeBasemapPreference(isDark);
 }
 
-// UX: karanlık moda geçilince, parlak-beyaz bir OSM altlığına bakmaya devam
-// etmemesi için haritayı otomatik olarak karanlık uyumlu "Dark Matter" altlığına
-// geçirir; açık moda dönünce OSM'a geri döner. Kullanıcı select'ten elle farklı
-// bir altlık (topo/uydu) seçtiyse bu otomatik geçiş devre dışı kalır — tercihine
-// müdahale edilmez.
 function applyThemeBasemapPreference(isDark) {
-  if (typeof map === 'undefined' || typeof basemaps === 'undefined') return; // harita henüz kurulmadıysa
+  if (typeof map === 'undefined' || typeof basemaps === 'undefined') return;
   if (userPickedBasemapManually) return;
   if (isDark && currentBasemapKey === 'osm') {
     switchBasemap('dark', false);
@@ -1577,12 +1481,6 @@ function applyThemeBasemapPreference(isDark) {
   }
 }
 
-// Chart.js grafikleri canvas üzerine çizildiği için CSS değişkenlerini otomatik
-// almaz; tema değişince mevcut grafiklerin ızgara/etiket renklerini yeniden
-// hesaplayıp update() ile tazelemek gerekir. Grafik nesneleri (numChart, catChart,
-// histChart, scatterChart, boxChart) top-level 'let' ile tanımlı olduğundan
-// window[...] üzerinden değil doğrudan isimleriyle erişilir (top-level let/const
-// window nesnesine otomatik eklenmez — bu yalnızca var için geçerlidir).
 function refreshChartsForTheme() {
   [numChart, catChart, histChart, scatterChart, boxChart].forEach(chart => {
     if (chart && typeof chart.update === 'function') {
@@ -1609,20 +1507,16 @@ function applyThemeToChart(chart) {
   }
 }
 
-applyThemeIconState(); // sayfa yüklenirken buton ikonunu erken script'in kararıyla senkronla
+applyThemeIconState();
 
-// ─── MAP INIT ─────────────────────────────────────────────────────────────────
-// preferCanvas:true — vektör katmanlarının (havza sınırı, mansap noktaları) leaflet-image
-// ile dışa aktarılabilmesi için gereklidir; SVG renderer'da bu katmanlar görsele dahil olmaz.
 const map = L.map('map', { preferCanvas: true, zoomSnap: 0.5, wheelDebounceTime: 80, wheelPxPerZoomLevel: 90 }).setView([39.0, 35.0], 6);
 
-// Harita yüksekliğini viewport'a göre ayarla
 function setMapHeight() {
   const mapEl = document.getElementById('map');
   const headerH = document.querySelector('header')?.offsetHeight || 52;
   const searchBarH = document.querySelector('.map-search-bar')?.offsetHeight || 44;
   const cardHeaderH = document.querySelector('.map-card .card-header')?.offsetHeight || 44;
-  const padding = 28; // .main padding top+bottom
+  const padding = 28;
   const minH = 400;
   const h = Math.max(minH, window.innerHeight - headerH - searchBarH - cardHeaderH - padding - 10);
   mapEl.style.height = h + 'px';
@@ -1631,40 +1525,22 @@ function setMapHeight() {
 setMapHeight();
 window.addEventListener('resize', setMapHeight);
 const basemaps = {
-  // NOT: tile.openstreetmap.org, gönüllülerce işletilen sunucularının kullanım
-  // politikasını ihlal ettiği gerekçesiyle bu siteyi/etki alanını engellemiş
-  // durumda ("App is not following the tile usage policy" / 403). Bu engel
-  // OSM tarafında IP/hacim/kimlik bazlı verildiği için sitemizden düzeltilecek
-  // bir ayar değil ve kalıcı olabilir. Bu yüzden OSM standart katmanı, aynı
-  // Esri altyapısını (sat/dark katmanlarıyla aynı domain, anahtarsız/ücretsiz,
-  // engelleme riski taşımayan) kullanan Esri "World Street Map" ile değiştirildi.
   osm:  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {attribution:'© Esri, HERE, Garmin, OpenStreetMap contributors'}),
   topo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',  {attribution:'© OpenTopoMap', subdomains: 'abc'}),
   sat:  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {attribution:'© Esri'}),
-  // Karanlık moda uygun altlık: CARTO artık raster tile servisi için ücretsiz
-  // API anahtarı şart koşuyor (anahtarsız istekler "API KEY REQUIRED" filigranlı
-  // döner) — bu yüzden CARTO Dark Matter yerine, aynı Esri altyapısını (sat
-  // katmanıyla aynı domain, anahtarsız/ücretsiz) kullanan Esri "Dark Gray
-  // Canvas" katmanına geçildi.
   dark: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
     attribution: '© Esri, HERE, Garmin', maxZoom: 16
   })
 };
 basemaps.osm.addTo(map);
 let currentBasemapKey = 'osm';
-let userPickedBasemapManually = false; // kullanıcı select'ten elle bir tile seçtiyse tema geçişinde otomatik değiştirilmez
+let userPickedBasemapManually = false;
 
-// Sayfa zaten karanlık modda açıldıysa (kayıtlı tercih ya da sistem teması,
-// <head> içindeki erken script tarafından uygulanmış olabilir) haritayı da
-// baştan karanlık uyumlu altlıkla göster — önce parlak OSM görünüp sonra
-// karanlığa geçme titremesi yaşanmasın.
 if (document.documentElement.classList.contains('dark-mode')) {
   switchBasemap('dark', false);
 }
 
-// Layer grupları – ayrı kontrol
 const layers = {
-  // Genel havza şeması (Basin_General.shp) — soluk, en altta referans katmanı
   basinGeneral: L.layerGroup().addTo(map),
   watershed: L.layerGroup().addTo(map),
   river:     L.layerGroup().addTo(map),
@@ -1672,7 +1548,7 @@ const layers = {
     chunkedLoading: true,
     chunkInterval: 100,
     chunkDelay: 30,
-    animate: false,               // zoom sirasinda binlerce DOM elemanini animasyonlamayi kapat
+    animate: false,
     animateAddingMarkers: false,
     removeOutsideVisibleBounds: true,
     maxClusterRadius: 60,
@@ -1697,9 +1573,7 @@ const layers = {
   }).addTo(map)
 };
 
-// Seçili havza highlight layer
 let highlightLayer = null;
-// Seçili nokta marker'ı (mavi gösterge)
 let selectedMarker = null;
 let selectedMarkerCoords = null;
 
@@ -1717,14 +1591,11 @@ function switchBasemap(key, isManual = true) {
   if (select) select.value = key;
 }
 
-// ─── TopoJSON → GeoJSON dönüştürücü ──────────────────────────────────────────
 function topoToGeoJSON(topo) {
   const objKey = Object.keys(topo.objects)[0];
   return topojson.feature(topo, topo.objects[objKey]);
 }
 
-// ─── Strahler_O değerine göre minimum zoom eşiği ─────────────────────────────
-// Büyük havzalar (7-9) uzaktan görünür, küçükler (2-4) yakından
 function watershedMinZoom(strahler) {
   if (strahler >= 7) return 5;
   if (strahler >= 5) return 7;
@@ -1732,7 +1603,6 @@ function watershedMinZoom(strahler) {
   return 11;
 }
 
-// grid_code değerine göre minimum zoom eşiği (point)
 function pointMinZoom(gridCode) {
   if (gridCode >= 7) return 5;
   if (gridCode >= 5) return 7;
@@ -1740,7 +1610,6 @@ function pointMinZoom(gridCode) {
   return 11;
 }
 
-// ─── WATERSHED render ────────────────────────────────────────────────────────
 function renderWatershed(data) {
   layers.watershed.clearLayers();
   const geojson = (data.type === 'Topology') ? topoToGeoJSON(data) : data;
@@ -1758,7 +1627,6 @@ function renderWatershed(data) {
   }).addTo(layers.watershed);
 }
 
-// ─── RIVER render + zoom filtresi ────────────────────────────────────────────
 let riverLayer = null;
 
 function renderRiver(data) {
@@ -1780,25 +1648,13 @@ function refreshRiver() {
   }
 }
 
-
-
-// ─── OUTPOINT render ─────────────────────────────────────────────────────────
-// GÜVENLİK: kullanıcı tarafından yüklenebilen bir GeoJSON'daki koordinatların
-// sonlu ve coğrafi olarak geçerli aralıkta olduğunu doğrular. Doğrulanmamış
-// NaN/Infinity/aralık-dışı değerler haritanın (ve alan-çizim point-in-polygon
-// bounding-box hesaplarının) bozulmasına yol açabilir.
 function isValidLatLng(lat, lng) {
   return Number.isFinite(lat) && Number.isFinite(lng) &&
     lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
 }
 
-// ─── KOORDİNAT SİSTEMİ (CRS) DÖNÜŞÜMÜ ────────────────────────────────────────
-// Point/polygon dosyaları enlem-boylam (EPSG:4326) değilse otomatik olarak dönüştürülür.
-// CRS belirlenemezse aşağıdaki sabiti doldurun: EPSG kodu ('EPSG:5254') ya da tam proj4 dizesi.
-// point.json koordinatları TM36 (CM=36°E, FE=500000, k=1) ile en iyi uyumu verdi -> EPSG:5256 (TUREF / TM36).
-// Dosyalar enlem-boylam ise bu sabit kullanılmaz. Yanlış görünürse QGIS'teki CRS ile değiştirin.
 const DATA_CRS = 'EPSG:5256';
-const _TM = { 5253: 27, 5254: 30, 5255: 33, 5256: 36, 5257: 39, 5258: 42, 5259: 45 };   // TUREF TM
+const _TM = { 5253: 27, 5254: 30, 5255: 33, 5256: 36, 5257: 39, 5258: 42, 5259: 45 };
 const KNOWN_CRS = {
   'EPSG:3857':  '+proj=merc +a=6378137 +b=6378137 +lat_ts=0 +lon_0=0 +x_0=0 +y_0=0 +k=1 +units=m +nadgrids=@null +no_defs',
   'EPSG:32635': '+proj=utm +zone=35 +datum=WGS84 +units=m +no_defs',
@@ -1809,7 +1665,6 @@ Object.keys(_TM).forEach(c => { KNOWN_CRS['EPSG:' + c] = `+proj=tmerc +lat_0=0 +
 let _dataCrsConv = null;
 
 function _firstCoord(c) { return (typeof c[0] === 'number') ? c : _firstCoord(c[0]); }
-// Tüm veri setine yayılmış n örnek nokta (yalnızca ilk 20'ye bakmak komşu noktalar yüzünden yanıltıcıydı)
 function _sampleXY(fc, n) {
   const feats = fc.features || [];
   const step = Math.max(1, Math.floor(feats.length / n));
@@ -1844,7 +1699,6 @@ function _resolveDataCrs(fc, xy) {
   const member = _crsMemberName(fc);
   const explicit = _defOf(DATA_CRS) || _defOf(member);
   if (explicit) { _dataCrsConv = proj4(explicit, 'EPSG:4326'); return _dataCrsConv; }
-  // Otomatik tahmin yalnızca TEK aday Türkiye'ye düşüyorsa yapılır (birden fazlaysa yanlış kayma riski var)
   const hits = [];
   for (const [name, def] of Object.entries(KNOWN_CRS)) {
     try {
@@ -1859,7 +1713,6 @@ function _resolveDataCrs(fc, xy) {
     (member ? ` | dosyadaki crs: ${member}` : ' | dosyada crs alanı yok') +
     `. index.html içinde DATA_CRS sabitine EPSG kodunu veya proj4 dizesini yazın.`);
 }
-// Feature / FeatureCollection'ı yerinde EPSG:4326'ya çevirir (zaten derece ise dokunmaz)
 function ensureWgs84(obj) {
   if (!obj) return obj;
   const fc = obj.type === 'Feature' ? { features: [obj] } : obj;
@@ -1872,21 +1725,18 @@ function ensureWgs84(obj) {
   return obj;
 }
 
-// point dosyasını GeoJSON FeatureCollection'a normalize eder (GeoJSON, TopoJSON, Feature dizisi, tek Feature)
 function normalizePointData(d) {
   if (Array.isArray(d)) d = { type: 'FeatureCollection', features: d };
   else if (d && d.type === 'Topology') d = topoToGeoJSON(d);
   else if (d && d.type === 'Feature') d = { type: 'FeatureCollection', features: [d] };
   if (!d || !Array.isArray(d.features)) throw new Error('point dosyası GeoJSON/TopoJSON biçiminde değil (features dizisi yok)');
-  d.features.forEach(f => {   // tek noktalı MultiPoint -> Point
+  d.features.forEach(f => {
     const g = f && f.geometry;
     if (g && g.type === 'MultiPoint' && g.coordinates.length) f.geometry = { type: 'Point', coordinates: g.coordinates[0] };
   });
   return ensureWgs84(d);
 }
 
-// CSV sonradan geldiginde (veya yeniden birlesince) 20-50 bin marker'i silip yeniden
-// olusturmak yerine sadece WID -> nokta indeksini yeniler. Marker/cluster'a dokunmaz.
 function reindexPointWIDs() {
   pointIndexByWID = {};
   for (const entry of pointEntriesAll) {
@@ -1906,7 +1756,6 @@ function renderPoints(geojson) {
   geojson = normalizePointData(geojson);
   layers.point.clearLayers();
   pointGeoJSON = geojson;
-  // Programatik seçim için WID / Poly_OID → {props, latlng} indeksi
   pointIndexByWID = {};
   pointIndexByPolyOID = {};
   pointEntriesAll = [];
@@ -1928,7 +1777,6 @@ function renderPoints(geojson) {
       const polyOID = props['Poly_OID'];
       if (polyOID !== undefined && polyOID !== null) {
         pointIndexByPolyOID[String(polyOID)] = entry;
-        // Poly_OID üzerinden CSV'deki WID'e de eriş (point GeoJSON'da WID alanı olmasa bile arama yapılabilsin)
         const wRow = watershedById[String(polyOID)];
         const wid = (props['WID'] !== undefined && props['WID'] !== null) ? props['WID']
           : (wRow ? (wRow['WID'] ?? wRow['Havza_Ad']) : undefined);
@@ -1952,37 +1800,27 @@ function renderPoints(geojson) {
   }
 }
 
-
-// ─── Cluster grubunu soldur / eski haline getir ───────────────────────────────
 function dimClusters(dim) {
   const el = layers.point.getContainer ? layers.point.getContainer() : null;
-  // MarkerClusterGroup DOM container'ına opacity uygula
-  // Leaflet cluster pane üzerinden erişim
   const pane = map.getPane('markerPane');
   if (pane) pane.style.opacity = dim ? '0.15' : '1';
 }
 
-// ─── Seçili nokta marker'ını güncelle ────────────────────────────────────────
 function setSelectedMarker(latlng) {
-  // Öncekini kaldır
   if (selectedMarker) { map.removeLayer(selectedMarker); selectedMarker = null; }
   if (!latlng) return;
   selectedMarkerCoords = latlng;
 
-  // Sabit büyük mavi daire — her zoom seviyesinde görünür (pulsing ring + solid dot)
   selectedMarker = L.layerGroup([
-    // Dış halka (pulse efekti için büyük)
     L.circleMarker(latlng, {
       radius: 18, fillColor: 'transparent', fillOpacity: 0,
       color: '#9c5a34', weight: 3, opacity: 0.55,
       className: 'selected-ring'
     }),
-    // Orta halka
     L.circleMarker(latlng, {
       radius: 11, fillColor: '#9c5a34', fillOpacity: 0.25,
       color: '#9c5a34', weight: 2.5, opacity: 0.9
     }),
-    // İç nokta (solid)
     L.circleMarker(latlng, {
       radius: 6, fillColor: '#9c5a34', fillOpacity: 1,
       color: '#ffffff', weight: 2, opacity: 1
@@ -1990,29 +1828,23 @@ function setSelectedMarker(latlng) {
   ]).addTo(map);
 }
 
-// ─── Seçimi temizle ───────────────────────────────────────────────────────────
 function clearSelection() {
   if (selectedMarker) { map.removeLayer(selectedMarker); selectedMarker = null; }
   selectedMarkerCoords = null;
   if (highlightLayer) { map.removeLayer(highlightLayer); highlightLayer = null; }
   dimClusters(false);
-  // Çoklu seçim de temizlensin
   clearMultiSelection();
 }
 
-// ─── Nokta tıklandı ───────────────────────────────────────────────────────────
 async function onPointClick(props, latlng, shiftKey) {
   if (shiftKey) {
-    // Çoklu seçim modu
     await addToMultiSelection(props, latlng);
     return;
   }
 
-  // Tek seçim modu – önce çoklu seçimi temizle
   clearMultiSelectionMarkers();
   selectedPoints = [];
 
-  // Clusters'ı soldur, seçili marker'ı göster
   dimClusters(true);
   setSelectedMarker(latlng);
 
@@ -2044,16 +1876,13 @@ async function onPointClick(props, latlng, shiftKey) {
   if (row) {
     const skipFields = new Set(['Shape_Area','Shape_Leng','Shape_Length','OBJECTID','FID','OBJECTID_1','DSI_Kod','GTS_KOD','Climate_1','Climate_2','Climate_De']);
     const twoColFields = new Set(['Bh','Hi','T','Dd','Rn','Lo','Fs','Kc','MRn','Rl','Rb','Tc_Kirpich']);
-    // Morfometrik parametreler: CSV'de Bh ... Tc_Kirpich arasındaki TÜM sütunlar (+ yukarıdaki liste)
     const morphSet = new Set(twoColFields);
     { const i0 = csvHeaders.indexOf('Bh'), i1 = csvHeaders.indexOf('Tc_Kirpich');
       if (i0 >= 0 && i1 >= i0) csvHeaders.slice(i0, i1 + 1).forEach(h => morphSet.add(h)); }
-    // Tc_Kirpich'ten sonra gelen sayısal parametreler de (Di, Rho, If ...) morfometriktir
     const _afterBh = new Set(csvHeaders.indexOf('Bh') >= 0 ? csvHeaders.slice(csvHeaders.indexOf('Bh')) : []);
     const _notMorph = new Set(['TPI_Major','Taban','Havza_Ad','Ana_havza','Strahler_O','area_km2','Jeo_Era','Jeo_Desc']);
     const isMorph = (key, val) => morphSet.has(key) || (_afterBh.has(key) && typeof val === 'number' && !_notMorph.has(key));
 
-    // Ham CSV alan adı -> ekranda gösterilecek Türkçe etiket
     const fieldLabelMap = {
       'Strahler_O':  'Strahler Dizin No',
       'Havza_Ad':    'DS\u0130 Havzas\u0131',
@@ -2066,7 +1895,6 @@ async function onPointClick(props, latlng, shiftKey) {
       'TPI_Major':   'TPI',
     };
 
-    // TPI_Major sınıf kodu -> Türkçe sınıf adı
     const tpiClassMap = {
       '1':  'Dereler',
       '2':  'Yama\u00E7 Ortas\u0131 Drenajlar\u0131',
@@ -2080,33 +1908,26 @@ async function onPointClick(props, latlng, shiftKey) {
       '10': 'Y\u00FCksek S\u0131rtlar',
     };
 
-    // Parantez için önceden al
     const dsiKod   = row['DSI_Kod']   !== undefined && row['DSI_Kod']   !== '' ? row['DSI_Kod']   : null;
     const gtsKod   = row['GTS_KOD']   !== undefined && row['GTS_KOD']   !== '' ? row['GTS_KOD']   : null;
 
-    let topHtml   = '';   // Bh öncesi alanlar (tek sütun)
-    let morphHtml = '';   // morfometrik parametreler: ikili sıra (tek kalan satır tam genişlikte)
-    let botHtml   = '';   // Tc_Kirpich sonrası alanlar (tek sütun)
+    let topHtml   = '';
+    let morphHtml = '';
+    let botHtml   = '';
     let inTwoCol  = false;
 
     for (const [k, v] of Object.entries(row)) {
       if (skipFields.has(k)) continue;
       if (v === '' || v === null || v === undefined) continue;
-      // Köppen sütunları ayrı bir blokta toplanır (aşağıda), burada satır üretme
       if (Object.prototype.hasOwnProperty.call(koppenDescByCode, k) || columnOrigin[k] === 'koppen') continue;
-      // Arazi örtüsü payları da aşağıda ayrı bir bileşim bloğunda gösterilir
       if (columnOrigin[k] === 'landcover') continue;
 
       let dispVal = (typeof v === 'number' && !Number.isInteger(v)) ? v.toFixed(2) : v;
 
-      // Varsayılan görüntü anahtarı: Türkçe etiket varsa onu kullan, yoksa ham alan adı
       let dispKey = fieldLabelMap[k] || k;
 
-      // Havza_Ad → anahtar "DSİ Havzası (Kod)", değer "Susurluk (3)"
       if (k === 'Havza_Ad' && dsiKod !== null) { dispVal = `${dispVal} (${dsiKod})`; }
-      // Taban → parantezde GTS_KOD
       if (k === 'Taban' && gtsKod !== null) dispVal = `${dispVal} (${gtsKod})`;
-      // TPI_Major → değerin yanında sınıf adı parantezde, örn. "6 (Açık Yamaçlar)"
       if (k === 'TPI_Major') {
         const tpiName = tpiClassMap[String(v).trim()];
         if (tpiName) dispVal = `${dispVal} (${tpiName})`;
@@ -2126,8 +1947,6 @@ async function onPointClick(props, latlng, shiftKey) {
 
     const twoColBlock = morphHtml ? `<div class="wh-two-col">${morphHtml}</div>` : '';
 
-    // ── Bileşim blokları: bu havzanın iklim ve arazi örtüsü payları (her biri kendi içinde %100) ──
-    // İki blok panelin altında yan yana durur; dar sütunda sınıf adları kısa gösterilir (tam ad üzerine gelince)
     const _kp = compositionHTML(getComposition(row, 'koppen'), 'İklim Sınıfları (Köppen-Geiger)', true);
     const _lc = compositionHTML(getComposition(row, 'landcover'), 'Arazi Örtüsü / Kullanımı', true);
     const koppenHtml = (_kp || _lc) ? `<div class="comp-two-col${(_kp && _lc) ? '' : ' single'}">${_kp}${_lc}</div>` : '';
@@ -2166,15 +1985,11 @@ async function onPointClick(props, latlng, shiftKey) {
   }
 }
 
-// ─── WID KODU İLE ARAMA (haritanın üstündeki arama çubuğu) ───────────────────
 function findPointEntryByWID(query) {
   const q = String(query).trim();
   if (!q) return null;
-  // Tam eşleşme önce (WID indeksi)
   if (pointIndexByWID[q]) return pointIndexByWID[q];
-  // Poly_OID üzerinden tam eşleşme
   if (pointIndexByPolyOID[q]) return pointIndexByPolyOID[q];
-  // Büyük/küçük harf duyarsız tam eşleşme
   const qLower = q.toLowerCase();
   for (const [wid, entry] of Object.entries(pointIndexByWID)) {
     if (String(wid).toLowerCase() === qLower) return entry;
@@ -2199,11 +2014,6 @@ function searchWIDMatches(query) {
   return results;
 }
 
-// UX: harita üzerindeki durum/bildirim mesajı artık kalıcı bir şerit değil,
-// geçici bir "toast" — birkaç saniye sonra kendiliğinden kaybolur, haritada
-// başka bir yere tıklanınca hemen kapanır, ve bir kapatma (✕) ikonu içerir.
-// duration=0 verilirse (örn. "işleniyor…" durumları) otomatik kapanma devre dışı
-// kalır; arkasından gelecek bir sonraki showWIDSearchMsg çağrısı onu değiştirir.
 let _widMsgAutoHideTimer = null;
 
 function showWIDSearchMsg(text, type, duration = 4000) {
@@ -2224,9 +2034,8 @@ function showWIDSearchMsg(text, type, duration = 4000) {
   }
 }
 
-// Harita üzerinde toast dışında herhangi bir yere tıklanınca mesajı hemen kapat
 map.on('click', () => {
-  if (isDrawMode || isEditingDrawnArea) return; // çizim/düzenleme sırasında dokunma
+  if (isDrawMode || isEditingDrawnArea) return;
   const el = document.getElementById('map-wid-search-msg');
   if (el.classList.contains('show')) showWIDSearchMsg('', '');
 });
@@ -2251,9 +2060,7 @@ function selectWIDFromSuggestion(wid) {
 }
 
 function goToPointEntry(entry) {
-  // Harita sekmesine geç (zaten orada olabilir)
   showTab('map', document.querySelector("nav button[onclick*=\"'map'\"]"));
-  // Marker'a tıklamış gibi davran
   onPointClick(entry.props, entry.latlng, false);
   map.setView(entry.latlng, Math.max(map.getZoom(), 11), { animate: true });
 }
@@ -2287,9 +2094,6 @@ function searchByWID() {
   showWIDSearchMsg('✗ "' + query + '" koduna sahip nokta bulunamadı.', 'err');
 }
 
-// ─── İNDİRME: seçili havza(lar)ı Excel veya GeoJSON olarak indir ─────────────
-
-// Tek/çoklu seçimi ortak bir listeye normalize eder
 function getSelectedEntriesNormalized() {
   if (selectedPoints.length > 0) {
     return selectedPoints.map(sp => {
@@ -2307,16 +2111,8 @@ function getSelectedEntriesNormalized() {
   return [];
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// SEÇİMİ BAĞLANTI OLARAK PAYLAŞMA
-// Seçili noktaların Poly_OID'lerini URL'e ?sel=1,2,3 şeklinde kodlar (WID yerine
-// Poly_OID kullanılır çünkü her nokta girişinde garanti mevcuttur — WID, CSV'den
-// gelen opsiyonel bir alandır). Linki açan kişi sayfası yüklenince otomatik olarak
-// aynı noktalar seçili halde Harita sekmesinde karşılanır.
-// ══════════════════════════════════════════════════════════════════════════════
-
 const SHARE_SEL_PARAM = 'sel';
-const SHARE_LINK_HARD_LIMIT = 800; // addPointsToMultiSelection'ın kilitlenmesini önlemek için
+const SHARE_LINK_HARD_LIMIT = 800;
 
 function buildShareURL() {
   const entries = getSelectedEntriesNormalized();
@@ -2326,15 +2122,11 @@ function buildShareURL() {
   if (!ids.length) return null;
 
   const url = new URL(window.location.href);
-  url.search = ''; // önceki paylaşım parametrelerini temizle
+  url.search = '';
   url.searchParams.set(SHARE_SEL_PARAM, ids.join(','));
   return url.toString();
 }
 
-// UX: paylaşım linki artık sessizce panoya kopyalanıp küçük bir mesaj göstermek
-// yerine, ekranın ortasında bir modal ile sunulur — link büyük ve okunaklı
-// gösterilir, kullanıcı "Kopyala"ya kendi basar, kopyalanınca kısa bir onay
-// animasyonundan sonra modal kendiliğinden kapanır.
 function shareSelectionLink() {
   const url = buildShareURL();
   if (!url) {
@@ -2353,7 +2145,6 @@ function openShareModal(url) {
   copyBtn.classList.remove('copied');
   overlay.classList.add('visible');
   document.addEventListener('keydown', _shareModalKeydown);
-  // Kısa bir gecikmeyle input'u seçili hale getir (modal animasyonu bitsin diye)
   setTimeout(() => { input.select(); }, 120);
 }
 
@@ -2377,29 +2168,25 @@ async function copyShareModalLink() {
       await navigator.clipboard.writeText(url);
       copied = true;
     }
-  } catch (e) { /* clipboard API başarısız olabilir (izin/eski tarayıcı) — aşağıda fallback var */ }
+  } catch (e) {  }
 
   if (!copied) {
-    // Eski tarayıcı ya da güvensiz bağlam (http/file://) için input üzerinden
-    // execCommand('copy') fallback'i denenir.
     try {
       input.select();
       copied = document.execCommand('copy');
-    } catch (e) { /* yine başarısızsa kullanıcı elle Ctrl+C ile kopyalayabilir, input zaten seçili */ }
+    } catch (e) {  }
   }
 
   if (copied) {
     copyBtn.textContent = '✓ Kopyalandı';
     copyBtn.classList.add('copied');
-    setTimeout(closeShareModal, 900); // kısa bir onay gösterip modal kendiliğinden kapanır
+    setTimeout(closeShareModal, 900);
   } else {
     copyBtn.textContent = '⚠ Kopyalanamadı, elle seçip Ctrl+C yapın';
     input.select();
   }
 }
 
-// Sayfa yüklenirken URL'de ?sel=... varsa, nokta verisi hazır olur olmaz o
-// noktaları otomatik olarak çoklu seçime ekler ve Harita sekmesine geçer.
 async function loadSelectionFromURL() {
   const params = new URLSearchParams(window.location.search);
   const raw = params.get(SHARE_SEL_PARAM);
@@ -2423,7 +2210,6 @@ async function loadSelectionFromURL() {
   await addPointsToMultiSelection(entries);
 }
 
-// Seçim değiştiğinde indirme çubuğunu göster/gizle ve uyarı metnini güncelle
 function updateDownloadBarUI() {
   const bar = document.getElementById('download-bar');
   const note = document.getElementById('dlbar-note');
@@ -2445,11 +2231,6 @@ function updateDownloadBarUI() {
 
 }
 
-// UX: "İndir" butonlarına basmadan önce, Excel çıktısında hangi sütunların
-// yer alacağını kısaca gösterir. downloadSelectionAsExcel ile BİREBİR AYNI
-// satır-birleştirme mantığını kullanır (csvRow önce yazılır, sonra props'tan
-// gelenler o satırda zaten varsa Point_ önekiyle eklenir) ki önizleme gerçek
-// çıktıyla tutarlı olsun; mantık ileride değişirse ikisi ayrı ayrı güncellenmemeli.
 function buildExportRows(entries) {
   return entries.map(e => {
     const row = {};
@@ -2463,8 +2244,6 @@ function buildExportRows(entries) {
   });
 }
 
-// UX: kullanıcı Tablo/İstatistik gibi başka bir sekmedeyken haritadaki seçimini
-// unutmasın diye "Harita" nav butonunun üstünde küçük bir sayı rozeti gösterir.
 function updateNavSelectionBadge(count) {
   const badge = document.getElementById('nav-selection-badge');
   if (!badge) return;
@@ -2476,7 +2255,6 @@ function updateNavSelectionBadge(count) {
   }
 }
 
-// Tarayıcıda bir Blob'u dosya olarak indirten yardımcı
 function triggerBlobDownload(blob, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -2487,14 +2265,11 @@ function triggerBlobDownload(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-// ─── Seçili havza(ları) Excel (.xlsx) olarak indir — sadece attribute verisi ──
 function downloadSelectionAsExcel() {
   const entries = getSelectedEntriesNormalized();
   if (!entries.length) { alert('Önce haritadan bir çıkış noktası / havza seçin.'); return; }
   if (typeof XLSX === 'undefined') { alert('Excel kütüphanesi yüklenemedi (XLSX). İnternet bağlantınızı kontrol edin.'); return; }
 
-  // Satır birleştirme mantığı buildExportRows'ta (updateDownloadBarUI'daki önizlemeyle
-  // ortak) tanımlı — ikisinin farklılaşmasını önlemek için tek yerden besleniyor.
   const rows = buildExportRows(entries);
 
   const ws = XLSX.utils.json_to_sheet(rows);
@@ -2507,12 +2282,10 @@ function downloadSelectionAsExcel() {
   XLSX.writeFile(wb, fname);
 }
 
-// ─── Seçili havza(ları) polygon (GeoJSON) olarak indir — sadece geometri ──────
 async function downloadSelectionAsGeoJSON() {
   let entries = getSelectedEntriesNormalized();
   if (!entries.length) { alert('Önce haritadan bir çıkış noktası / havza seçin.'); return; }
 
-  // Eksik polygon'ları son bir kez yüklemeyi dene (kullanıcı çok hızlı tıklamış olabilir)
   for (const e of entries) {
     if (!e.polyFeature && e.polyOID !== undefined && e.polyOID !== null) {
       e.polyFeature = await fetchPolygonFeature(e.polyOID);
@@ -2522,7 +2295,6 @@ async function downloadSelectionAsGeoJSON() {
   const features = entries
     .filter(e => e.polyFeature)
     .map(e => {
-      // Tek bir Feature olabileceği gibi FeatureCollection da olabilir; ikisini de normalize et
       const feats = e.polyFeature.type === 'FeatureCollection' ? e.polyFeature.features : [e.polyFeature];
       return feats.map(f => ({
         ...f,
@@ -2544,7 +2316,6 @@ async function downloadSelectionAsGeoJSON() {
   triggerBlobDownload(blob, fname);
 }
 
-// ─── Seçili havza(ları) polygon (GeoJSON veya SHP) olarak indir ───────────────
 async function downloadSelectionAsPolygon() {
   const fmt = (document.getElementById('dlbar-poly-format') || {}).value || 'geojson';
   if (fmt === 'shp') {
@@ -2554,12 +2325,10 @@ async function downloadSelectionAsPolygon() {
   }
 }
 
-// ─── Seçili havza(ları) Shapefile (.zip) olarak indir ─────────────────────────
 async function downloadSelectionAsSHP() {
   let entries = getSelectedEntriesNormalized();
   if (!entries.length) { alert('Önce haritadan bir çıkış noktası / havza seçin.'); return; }
 
-  // Eksik polygon'ları yüklemeyi dene
   for (const e of entries) {
     if (!e.polyFeature && e.polyOID !== undefined && e.polyOID !== null) {
       e.polyFeature = await fetchPolygonFeature(e.polyOID);
@@ -2603,7 +2372,6 @@ async function downloadSelectionAsSHP() {
 
     const base64 = await shpwrite.zip(fc, options);
 
-    // base64 string'i Blob'a çevir
     const byteChars = atob(base64);
     const byteNums = new Array(byteChars.length);
     for (let i = 0; i < byteChars.length; i++) {
@@ -2619,19 +2387,13 @@ async function downloadSelectionAsSHP() {
   }
 }
 
-// Poly_OID'den polygon feature getir (sunucu klasörü veya manuel yüklenen klasör)
 async function fetchPolygonFeature(polyOID) {
   const f = await _fetchPolygonFeatureRaw(polyOID);
   if (f) { try { ensureWgs84(f); } catch (e) { console.error('[polygon CRS]', e.message); } }
   return f;
 }
-// ─── Parçalı (shard) polygon yükleme ─────────────────────────────────────────
-// 142 bin havza tek dosyada (~240 MB) tarayıcıyı çökertir. Bunun yerine Data/polygons/ altında
-// ~300'er havzalık TopoJSON parçaları (p0.json … p475.json) ve hangi havzanın hangi parçada
-// olduğunu söyleyen küçük bir index.json bulunur. Tıklanan havzanın yalnızca kendi parçası
-// (1-5 MB) indirilir; son birkaç parça bellekte tutulur.
 let _polyShardIndex = null;
-const _polyShardCache = new Map();          // parça no -> Promise<{ [Object]: Feature }>
+const _polyShardCache = new Map();
 const POLY_SHARD_CACHE_MAX = 4;
 async function _loadPolyShardIndex() {
   if (_polyShardIndex === null) {
@@ -2644,7 +2406,7 @@ async function _loadPolyShardIndex() {
 async function _loadPolyShard(k) {
   if (_polyShardCache.has(k)) {
     const p = _polyShardCache.get(k);
-    _polyShardCache.delete(k); _polyShardCache.set(k, p);   // en son kullanılan sona
+    _polyShardCache.delete(k); _polyShardCache.set(k, p);
     return p;
   }
   const p = fetch(`Data/polygons/p${k}.json`)
@@ -2690,8 +2452,6 @@ async function _fetchPolygonFeatureRaw(polyOID) {
   return await polygonFromSingleFile(polyOID);
 }
 
-// Yedek: tüm havzalar tek küçük dosyada (Data/polygon.json | polygon.geojson). Yalnızca dosya makul
-// boyuttaysa (<40 MB) indirilir; dev dosyalar tarayıcıyı çökerteceği için atlanır.
 let _polySingleIndex = null;
 async function polygonFromSingleFile(polyOID) {
   if (_polySingleIndex === null) {
@@ -2720,11 +2480,9 @@ async function polygonFromSingleFile(polyOID) {
   return _polySingleIndex[String(polyOID)] || null;
 }
 
-// Dosya adı için güvenli karakter temizliği
 function sanitizeFilename(s) {
   return String(s).replace(/[^a-zA-Z0-9_\-ğüşıöçĞÜŞİÖÇ]+/g, '_').slice(0, 60);
 }
-
 
 function clearMultiSelectionMarkers() {
   selectedPoints.forEach(sp => {
@@ -2733,17 +2491,14 @@ function clearMultiSelectionMarkers() {
   });
 }
 
-// ─── Çoklu seçimi tamamen temizle ────────────────────────────────────────────
 function clearMultiSelection() {
   clearMultiSelectionMarkers();
   selectedPoints = [];
   singleSelection = null;
-  // Tek seçim marker'ını da temizle
   if (selectedMarker) { map.removeLayer(selectedMarker); selectedMarker = null; }
   if (highlightLayer) { map.removeLayer(highlightLayer); highlightLayer = null; }
   dimClusters(false);
 
-  // UI güncelle
   document.getElementById('multi-select-bar').classList.remove('visible');
   document.getElementById('compare-panel-row').classList.remove('visible');
   document.getElementById('watershed-highlight').style.display = 'none';
@@ -2753,11 +2508,9 @@ function clearMultiSelection() {
   updateDownloadBarUI();
 }
 
-// ─── Çoklu seçime nokta ekle ─────────────────────────────────────────────────
 const MULTI_COLORS = ['#8e44ad','#16a085','#d35400','#2980b9','#27ae60','#f39c12','#1abc9c','#e91e63','#1e2a33','#3f6b4a'];
 
 async function addToMultiSelection(props, latlng) {
-  // Zaten seçili mi? (Poly_OID veya koordinat bazlı)
   const polyOID = props['Poly_OID'];
   const existIdx = selectedPoints.findIndex(sp =>
     sp.props['Poly_OID'] !== undefined
@@ -2766,7 +2519,6 @@ async function addToMultiSelection(props, latlng) {
   );
 
   if (existIdx >= 0) {
-    // Zaten seçiliyse kaldır
     const sp = selectedPoints[existIdx];
     if (sp.selMarker) map.removeLayer(sp.selMarker);
     if (sp.highlightLayer) map.removeLayer(sp.highlightLayer);
@@ -2776,12 +2528,10 @@ async function addToMultiSelection(props, latlng) {
     return;
   }
 
-  // İlk seçilen nokta sabit kırmızı, sonrakiler MULTI_COLORS'dan sırayla
   const color = selectedPoints.length === 0
     ? highlightColor
     : MULTI_COLORS[(selectedPoints.length - 1) % MULTI_COLORS.length];
 
-  // Renkli seçim marker'ı
   const selMarker = L.layerGroup([
     L.circleMarker(latlng, {
       radius: 16, fillColor: 'transparent', fillOpacity: 0,
@@ -2802,7 +2552,6 @@ async function addToMultiSelection(props, latlng) {
 
   dimClusters(true);
 
-  // Polygon'u yükle ve vurgula
   if (polyOID !== undefined && polyOID !== null) {
     try {
       const feat = await fetchPolygonFeature(polyOID);
@@ -2819,7 +2568,6 @@ async function addToMultiSelection(props, latlng) {
   updateMultiSelectUI();
 }
 
-// ─── Çoklu seçim UI güncellemesi ─────────────────────────────────────────────
 function updateMultiSelectUI() {
   const bar = document.getElementById('multi-select-bar');
   const comparePanel = document.getElementById('compare-panel');
@@ -2831,17 +2579,12 @@ function updateMultiSelectUI() {
     return;
   }
 
-  singleSelection = null; // çoklu seçim modundayken tekli seçim state'i geçersiz
+  singleSelection = null;
 
-  // Bar göster
   bar.classList.add('visible');
   document.getElementById('multi-count').textContent = `${n} nokta seçildi`;
   renderMultiSelectSummary();
 
-  // UX: 5'ten fazla nokta seçildiğinde sol panel (nokta listesi) ve karşılaştırma
-  // tablosu ekranı doldurup kullanışsız hale geldiği için gösterilmez — noktalar
-  // yalnızca haritada işaretli kalır. İndirme çubuğu (updateDownloadBarUI) ve nav
-  // rozeti bu eşikten etkilenmez, seçim işlevsel olarak aynı şekilde çalışmaya devam eder.
   const MULTI_SELECT_LIST_LIMIT = 5;
 
   if (n > MULTI_SELECT_LIST_LIMIT) {
@@ -2855,7 +2598,6 @@ function updateMultiSelectUI() {
     return;
   }
 
-  // Feature info alanını seçili noktaların listesiyle güncelle
   let listHtml = `<div style="font-size:11px;font-family:var(--font-sans);color:var(--text2);margin-bottom:6px;font-weight:700">SEÇİLİ NOKTALAR</div>`;
   selectedPoints.forEach((sp, i) => {
     const label = sp.props['WID'] || sp.props['Havza_Ad'] || sp.props['Poly_OID'] || `Nokta ${i+1}`;
@@ -2868,7 +2610,6 @@ function updateMultiSelectUI() {
   featureInfo.innerHTML = listHtml;
   document.getElementById('watershed-highlight').style.display = 'none';
 
-  // Karşılaştırma tablosunu göster (2-5 nokta seçiliyse)
   if (n >= 2) {
     document.getElementById('compare-panel-row').classList.add('visible');
     renderCompareTable();
@@ -2879,9 +2620,6 @@ function updateMultiSelectUI() {
   updateDownloadBarUI();
 }
 
-// UX: seçili noktalar için toplam/ortalama havza alanı ve veri eşleşme durumunu
-// özetleyen küçük bir bilgi satırı. Kullanıcı indirmeden önce "ne kadarlık bir
-// alan seçtiğini" ve kaç noktanın CSV/polygon verisiyle eşleştiğini görebilsin.
 function renderMultiSelectSummary() {
   const el = document.getElementById('multi-select-summary');
   if (!el) return;
@@ -2916,7 +2654,6 @@ function renderMultiSelectSummary() {
   el.innerHTML = parts.join('<span class="mss-sep">·</span>');
 }
 
-// ─── Listeden nokta kaldır ────────────────────────────────────────────────────
 function removeFromMultiSelection(idx) {
   const sp = selectedPoints[idx];
   if (sp.selMarker) map.removeLayer(sp.selMarker);
@@ -2926,13 +2663,11 @@ function removeFromMultiSelection(idx) {
   updateMultiSelectUI();
 }
 
-// ─── Karşılaştırma tablosu oluştur ───────────────────────────────────────────
 function renderCompareTable() {
   const thead = document.getElementById('compare-thead');
   const tbody = document.getElementById('compare-tbody');
   const n = selectedPoints.length;
 
-  // Başlık: Alan | Nokta1 | Nokta2 | ...
   let headHtml = '<tr><th>Alan</th>';
   selectedPoints.forEach((sp, i) => {
     const label = sp.props['WID'] || sp.props['Havza_Ad'] || sp.props['Poly_OID'] || `Nokta ${i+1}`;
@@ -2946,14 +2681,12 @@ function renderCompareTable() {
   headHtml += '</tr>';
   thead.innerHTML = headHtml;
 
-  // Tüm noktalardan tüm alanları topla
   const skipFields = new Set(['grid_code']);
   const allFields = new Set();
   selectedPoints.forEach(sp => Object.keys(sp.props).forEach(k => {
     if (!skipFields.has(k)) allFields.add(k);
   }));
 
-  // Havza verilerini de ekle
   const watershedFields = new Set();
   selectedPoints.forEach(sp => {
     const polyOID = sp.props['Poly_OID'];
@@ -2966,7 +2699,6 @@ function renderCompareTable() {
 
   let bodyHtml = '';
 
-  // Nokta attribute'ları
   allFields.forEach(field => {
     const vals = selectedPoints.map(sp => sp.props[field]);
     const numVals = vals.map(v => parseFloat(v)).filter(v => !isNaN(v) && isFinite(v));
@@ -2987,11 +2719,9 @@ function renderCompareTable() {
     bodyHtml += '</tr>';
   });
 
-  // Havza (CSV) attribute'ları — bölüm başlığı
   if (watershedFields.size > 0) {
     bodyHtml += `<tr><td colspan="${n+1}" style="background:var(--surface2);color:var(--text3);font-size:10px;font-family:var(--font-sans);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:6px 12px">Havza Verileri (CSV)</td></tr>`;
 
-    // İklim / arazi örtüsü: sütun sütun değil, havza başına tek bileşim çubuğu
     [['koppen', 'İklim (Köppen-Geiger)'], ['landcover', 'Arazi Örtüsü']].forEach(([o, lab]) => {
       const comps = selectedPoints.map(sp => {
         const oid = sp.props['Poly_OID'];
@@ -3031,43 +2761,27 @@ function renderCompareTable() {
   tbody.innerHTML = bodyHtml;
 }
 
-// Haritaya tıklanınca seçimi sıfırla (boş alana tıklama)
 map.on('click', function(e) {
-  if (isDrawMode || isEditingDrawnArea) return; // Çizim/düzenleme modundaysa normal tıklama-ile-seçim devre dışı
-  // Eğer bir marker'a tıklanmadıysa (event propagation engellenmediyse) seçimi temizle
+  if (isDrawMode || isEditingDrawnArea) return;
   if (!e._stopped) clearSelection();
 });
 
-// ══════════════════════════════════════════════════════════════════════════════
-// ALAN ÇİZEREK TOPLU HAVZA SEÇİMİ
-// Kullanıcı harita üzerinde bir dikdörtgen veya serbest çokgen çizer; çizilen
-// alanın içinde kalan tüm mansap noktaları otomatik olarak mevcut çoklu seçim
-// mekanizmasına (selectedPoints / addToMultiSelection) eklenir. İndirme işlemi
-// zaten var olan "Seçili Havzayı İndir" panelinden değişmeden çalışır.
-// ══════════════════════════════════════════════════════════════════════════════
+let isDrawMode = false;
+let drawShapeType = null;
+let drawLayer = null;
+let drawVertices = [];
+let drawRectStart = null;
+let drawMarkers = [];
 
-let isDrawMode = false;        // Çizim modu genel olarak aktif mi (rect ya da polygon)
-let drawShapeType = null;      // 'rect' | 'polygon' | null
-let drawLayer = null;          // Çizilirken haritada gösterilen geçici Leaflet katmanı
-let drawVertices = [];         // Poligon modunda tıklanan [lat,lng] noktaları
-let drawRectStart = null;      // Dikdörtgen modunda ilk köşe [lat,lng]
-let drawMarkers = [];          // Poligon vertex noktalarını gösteren küçük daireler
-
-// Çizim BİTTİKTEN SONRA, onaylanmadan önceki "düzenle" aşaması: kullanıcı
-// köşeleri sürükleyerek alanı ince ayarlayabilir. Onaylanınca addPointsToMultiSelection
-// tetiklenir; iptal edilirse hiçbir şey eklenmez.
 let isEditingDrawnArea = false;
-let editRing = [];             // Düzenlenmekte olan alanın güncel köşeleri [[lat,lng],...]
-let editLayer = null;          // Düzenleme sırasındaki dolu poligon/dikdörtgen katmanı
-let editHandles = [];          // Sürüklenebilir köşe marker'ları
-let lastConfirmedRing = null;  // En son onaylanan alan — "Son Alanı Tekrar Kullan" için
+let editRing = [];
+let editLayer = null;
+let editHandles = [];
+let lastConfirmedRing = null;
 
-// Güvenlik/performans sınırları: aşırı büyük/karmaşık çizimlerin tarayıcıyı
-// kilitlemesini veya kazara "tüm Türkiye" gibi devasa bir alanın seçilip binlerce
-// fetch isteği tetiklenmesini engeller.
-const DRAW_MAX_VERTICES = 300;        // Bir çokgende izin verilen azami köşe sayısı
-const DRAW_HARD_POINT_LIMIT = 800;    // Bu sayının üstü, poligon fetch'lerini tetiklemeden reddedilir
-const DRAW_FETCH_CONCURRENCY = 6;     // addToMultiSelection çağrılarını sınırlı eşzamanlılıkla çalıştır
+const DRAW_MAX_VERTICES = 300;
+const DRAW_HARD_POINT_LIMIT = 800;
+const DRAW_FETCH_CONCURRENCY = 6;
 
 function toggleDrawModeMenu() {
   const menu = document.getElementById('draw-mode-menu');
@@ -3076,7 +2790,6 @@ function toggleDrawModeMenu() {
   menu.classList.toggle('visible');
 }
 
-// Menü dışına tıklanınca kapat
 document.addEventListener('click', function(e) {
   const menu = document.getElementById('draw-mode-menu');
   const btn = document.getElementById('draw-tool-btn');
@@ -3089,7 +2802,7 @@ document.addEventListener('click', function(e) {
 function startAreaDraw(shapeType) {
   document.getElementById('draw-mode-menu').classList.remove('visible');
   if (isEditingDrawnArea) exitEditMode();
-  cancelAreaDraw(); // önceki bir çizim varsa temizle
+  cancelAreaDraw();
 
   isDrawMode = true;
   drawShapeType = shapeType;
@@ -3106,9 +2819,6 @@ function startAreaDraw(shapeType) {
     ? 'Dikdörtgen çizmek için haritaya tıklayıp sürükleyin'
     : 'Köşeleri sırayla tıklayın, bitirmek için "Bitir"e basın veya son noktaya çift tıklayın';
 
-  // Çizim sırasında harita sürüklemeyi (pan) devre dışı bırakmak dikdörtgen için
-  // gerekli (mousedown-drag = dikdörtgen çizimi); poligon modunda pan açık kalır
-  // (tek tık = vertex ekler, sürükleme haritayı gezdirir).
   if (shapeType === 'rect') {
     map.dragging.disable();
     map.getContainer().style.cursor = 'crosshair';
@@ -3128,7 +2838,6 @@ function onDrawKeydown(e) {
   else if (e.key === 'Enter' && drawShapeType === 'polygon') finishPolygonDraw();
 }
 
-// ─── Dikdörtgen çizimi (mousedown → mousemove → mouseup) ─────────────────────
 function onRectDrawStart(e) {
   drawRectStart = [e.latlng.lat, e.latlng.lng];
   if (drawLayer) { map.removeLayer(drawLayer); drawLayer = null; }
@@ -3136,10 +2845,6 @@ function onRectDrawStart(e) {
   map.on('mouseup', onRectDrawEnd);
 }
 
-// UX: çizim sırasında "şu an alan içinde X nokta var" canlı sayacı. mousemove
-// saniyede onlarca kez tetiklenebildiği için findPointsInRing'i her seferinde
-// çağırmak yerine hafif bir throttle (~120ms) uygulanır — hem akıcı çizim hissi
-// korunur hem de gereksiz tekrarlı tarama önlenir.
 let _liveCountThrottle = null;
 const LIVE_COUNT_THROTTLE_MS = 120;
 
@@ -3189,7 +2894,6 @@ function onRectDrawEnd(e) {
   finishAreaDraw(ring);
 }
 
-// ─── Serbest çokgen çizimi (tık tık tık … Bitir) ──────────────────────────────
 function onPolygonDrawClick(e) {
   if (drawVertices.length >= DRAW_MAX_VERTICES) {
     showWIDSearchMsg(`⚠ En fazla ${DRAW_MAX_VERTICES} köşe çizebilirsiniz. Lütfen çizimi bitirin.`, 'err');
@@ -3253,16 +2957,9 @@ function finishAreaDraw(ring) {
   enterDrawEditMode(ring);
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// DÜZENLEME AŞAMASI: çizim bitti ama henüz onaylanmadı. Kullanıcı köşeleri
-// sürükleyerek alanı ince ayarlayabilir; her sürüklemede içerideki nokta sayısı
-// canlı olarak yeniden hesaplanır. "Onayla" ile mevcut limit/cooldown kontrollerinden
-// geçip addPointsToMultiSelection tetiklenir, "Vazgeç" ile hiçbir şey eklenmeden çıkılır.
-// ══════════════════════════════════════════════════════════════════════════════
-
 function enterDrawEditMode(ring) {
   isEditingDrawnArea = true;
-  editRing = ring.map(v => [v[0], v[1]]); // kopya
+  editRing = ring.map(v => [v[0], v[1]]);
 
   document.getElementById('draw-tool-btn').classList.add('active');
   const statusBar = document.getElementById('draw-status-bar');
@@ -3297,7 +2994,7 @@ function redrawEditLayer() {
   editRing.forEach((v, i) => {
     const handle = L.circleMarker(v, {
       radius: 6, color: '#a33b2e', weight: 2, fillColor: '#fff', fillOpacity: 1,
-      draggable: true // not: circleMarker'da draggable native değil, alttaki mekanizma ile taşınır
+      draggable: true
     }).addTo(map);
     handle._vertexIndex = i;
     handle.on('mousedown', onEditHandleMouseDown);
@@ -3307,8 +3004,6 @@ function redrawEditLayer() {
   updateEditLiveCount();
 }
 
-// circleMarker Leaflet'te doğrudan sürüklenebilir olmadığı için köşe taşıma
-// mousedown → map mousemove → mouseup zinciriyle manuel uygulanır.
 let _draggingHandleIndex = null;
 function onEditHandleMouseDown(e) {
   L.DomEvent.stop(e);
@@ -3320,7 +3015,7 @@ function onEditHandleMouseDown(e) {
 function onEditHandleDrag(e) {
   if (_draggingHandleIndex === null) return;
   editRing[_draggingHandleIndex] = [e.latlng.lat, e.latlng.lng];
-  redrawEditLayer(); // basit ve garanti-doğru; köşe sayısı azdır (≤300), performans sorunu yaratmaz
+  redrawEditLayer();
 }
 function onEditHandleMouseUp() {
   _draggingHandleIndex = null;
@@ -3361,8 +3056,6 @@ function confirmDrawnArea() {
   updateReuseLastAreaBtn();
 }
 
-// UX: en son onaylanan alanı tek tıkla tekrar kullanabilme. Aynı yeri biraz
-// kaydırıp tekrar denemek isteyen kullanıcı için çizimi baştan yapmasına gerek kalmaz.
 function reuseLastDrawnArea() {
   if (!lastConfirmedRing || !lastConfirmedRing.length) return;
   document.getElementById('draw-mode-menu').classList.remove('visible');
@@ -3380,14 +3073,9 @@ function updateReuseLastAreaBtn() {
   if (btn) btn.style.display = lastConfirmedRing ? 'flex' : 'none';
 }
 
-// ─── Ortak: onaylanan alan için nokta bulma + limit/cooldown kontrolleri ──────
-// GÜVENLİK: art arda büyük alanlar çizip her seferinde onlarca-yüzlerce fetch
-// isteği tetiklemeyi (istemsiz de olsa kendi barındırılan Data/ sunucusuna karşı
-// bir tür DoS) yavaşlatan basit bir soğuma süresi. Küçük seçimlerde devreye
-// girmez; yalnızca "toplu" nitelikli istekler arka arkaya geldiğinde uygulanır.
 let _lastBulkAreaAddAt = 0;
 const DRAW_BULK_COOLDOWN_MS = 4000;
-const DRAW_BULK_COOLDOWN_THRESHOLD = 15; // bu sayının altındaki seçimlerde cooldown uygulanmaz
+const DRAW_BULK_COOLDOWN_THRESHOLD = 15;
 
 function processAreaSelection(ring) {
   const matches = findPointsInRing(ring);
@@ -3405,7 +3093,6 @@ function processAreaSelection(ring) {
     return;
   }
 
-  // Toplu (>= threshold) seçimler arka arkaya geldiğinde kısa bir soğuma uygula
   if (matches.length >= DRAW_BULK_COOLDOWN_THRESHOLD) {
     const now = Date.now();
     const elapsed = now - _lastBulkAreaAddAt;
@@ -3444,7 +3131,6 @@ function resetDrawUI() {
   document.getElementById('draw-status-bar').classList.remove('visible');
   hideLiveDrawCount();
 
-  // Düzenleme modunda değiştirilen buton metin/onclick'lerini varsayılana döndür
   const finishBtn = document.getElementById('draw-finish-btn');
   finishBtn.textContent = '✓ Bitir';
   finishBtn.onclick = finishPolygonDraw;
@@ -3458,7 +3144,6 @@ function cancelAreaDraw() {
   resetDrawUI();
 }
 
-// Ray-casting point-in-polygon testi. ring: [[lat,lng], ...] (kapalı olmasına gerek yok)
 function isPointInRing(lat, lng, ring) {
   let inside = false;
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
@@ -3471,10 +3156,6 @@ function isPointInRing(lat, lng, ring) {
   return inside;
 }
 
-// Çizilen alan içinde kalan tüm noktaları (props + latlng) döndürür.
-// pointIndexByWID üzerinde tekilleştirilerek dolaşılır (aynı koordinatta birden
-// fazla WID kaydı olabildiği için önce koordinat bazlı bir bounding-box ön-filtresi
-// uygulanır, sonra kesin ray-casting testi yapılır — büyük veri setlerinde hız için).
 function findPointsInRing(ring) {
   let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
   ring.forEach(([lat, lng]) => {
@@ -3490,7 +3171,7 @@ function findPointsInRing(ring) {
     const [lat, lng] = entry.latlng;
     if (lat < minLat || lat > maxLat || lng < minLng || lng > maxLng) continue;
     const key = lat + ',' + lng;
-    if (seenCoords.has(key)) continue; // aynı koordinatta çoklu WID kaydı varsa bir kez say
+    if (seenCoords.has(key)) continue;
     if (isPointInRing(lat, lng, ring)) {
       seenCoords.add(key);
       results.push(entry);
@@ -3499,12 +3180,10 @@ function findPointsInRing(ring) {
   return results;
 }
 
-// Bulunan noktaları mevcut çoklu seçim mekanizmasına, tarayıcıyı kilitlememek için
-// sınırlı eşzamanlılıkla (havuz halinde) ekler.
 async function addPointsToMultiSelection(entries) {
-  isDrawMode = false; // UI zaten resetlendi ama garanti olsun
+  isDrawMode = false;
   const statusMsgId = 'map-wid-search-msg';
-  showWIDSearchMsg(`⏳ ${entries.length} nokta ekleniyor…`, 'ok', 0); // 0: işlem bitene kadar otomatik kapanmasın
+  showWIDSearchMsg(`⏳ ${entries.length} nokta ekleniyor…`, 'ok', 0);
 
   let idx = 0;
   let added = 0;
@@ -3515,24 +3194,19 @@ async function addPointsToMultiSelection(entries) {
       try {
         await addToMultiSelection(entry.props, entry.latlng);
         added++;
-      } catch (e) { /* tek bir noktanın başarısız olması tüm işlemi durdurmasın */ }
+      } catch (e) {  }
     }
   }
   const workers = Array.from({ length: Math.min(DRAW_FETCH_CONCURRENCY, entries.length) }, worker);
   await Promise.all(workers);
 
   showWIDSearchMsg(`✓ ${added} nokta seçime eklendi. Aşağıdaki panelden indirebilirsiniz.`, 'ok');
-  // Seçilen alanın tamamı görünecek şekilde haritayı ortala
   try {
     const group = L.featureGroup(selectedPoints.map(sp => L.marker(sp.latlng)));
     if (group.getLayers().length) map.fitBounds(group.getBounds().pad(0.15));
   } catch (e) {}
 }
 
-// ─── KÖPPEN-GEIGER SINIF SÖZLÜĞÜ (Beck et al. 2023) ─────────────────────────
-// Girdi tablosundaki "Value_<n>" sütunları (n = 1..30) otomatik olarak
-// Köppen kodlarına (Af, Am, ... EF) çevrilir. Hücre değeri = havzadaki o
-// iklim sınıfının alan/piksel oranı.
 const KOPPEN_CLASSES = {
    1: { code:'Af',  desc:'Tropical, rainforest' },
    2: { code:'Am',  desc:'Tropical, monsoon' },
@@ -3565,24 +3239,17 @@ const KOPPEN_CLASSES = {
   29: { code:'ET',  desc:'Polar, tundra' },
   30: { code:'EF',  desc:'Polar, frost' }
 };
-// "Value_14", "value-14", "VALUE 14" gibi yazımları yakalar; yalnızca 1..30 arası geçerli.
 const KOPPEN_HEADER_RE = /^value[\s_\-]*0*(\d{1,2})$/i;
-// Yeniden adlandırma sonrası kod -> açıklama (panel/tooltip için)
 let koppenDescByCode = {};
 
-// Ham başlık listesini alır; Value_N başlıklarını Köppen koduna çevirir.
-// Aynı ada denk gelen çakışma olursa (örn. dosyada zaten "Cfa" varsa) kod "Cfa_Value"
-// olarak bırakılır, böylece hiçbir sütun sessizce ezilmez.
 function remapKoppenHeaders(rawHeaders) {
   const used = new Set(rawHeaders.filter(h => !KOPPEN_HEADER_RE.test(h)));
-  const map = {};        // ham başlık -> yeni başlık
-  // NOT: koppenDescByCode burada SIFIRLANMAZ. Her CSV (örn. Landcover.csv) parse edilirken bu fonksiyon
-  // çağrıldığı için tablo boşalıyor ve Köppen sütunları panelde ham satır olarak sızıyordu.
+  const map = {};
   rawHeaders.forEach(h => {
     const m = KOPPEN_HEADER_RE.exec(h);
     if (!m) return;
     const cls = KOPPEN_CLASSES[parseInt(m[1], 10)];
-    if (!cls) return;    // 0 veya 31+ gibi tanımsız değerler olduğu gibi kalır
+    if (!cls) return;
     let name = cls.code;
     if (used.has(name)) name = cls.code + '_Value';
     used.add(name);
@@ -3592,14 +3259,6 @@ function remapKoppenHeaders(rawHeaders) {
   return map;
 }
 
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// BİLEŞİM: İKLİM (Köppen-Geiger) ve ARAZİ ÖRTÜSÜ
-// Bu iki kaynaktaki sütunlar, HER HAVZA için o sınıfın alan payını (%) verir ve bir
-// satırdaki değerlerin toplamı ≈ %100'dür. Yani tek bir havzanın bileşimidir; tekil
-// sayısal parametre (histogram/scatter/korelasyon) gibi işlenmez, havza bazında gösterilir.
-// ═══════════════════════════════════════════════════════════════════════════════
-// Renkler: Beck ve ark. (Scientific Data, 2018/2023) Köppen-Geiger resmi lejantı.
 const KOPPEN_COLORS = {
   Af:'#0000ff', Am:'#0078ff', Aw:'#46aafa', BWh:'#ff0000', BWk:'#ff9696', BSh:'#f5a500', BSk:'#ffdc64',
   Csa:'#ffff00', Csb:'#c8c800', Csc:'#969600', Cwa:'#96ff96', Cwb:'#64c864', Cwc:'#329632',
@@ -3607,7 +3266,6 @@ const KOPPEN_COLORS = {
   Dwa:'#aaafff', Dwb:'#5a78dc', Dwc:'#4b50b4', Dwd:'#320087', Dfa:'#00ffff', Dfb:'#37c8ff', Dfc:'#007d7d',
   Dfd:'#00465f', ET:'#b2b2b2', EF:'#666666'
 };
-// Köppen kodu → Türkçe açıklama (kodun harflerinden türetilir)
 function koppenTR(code) {
   const c = String(code).replace(/_.*$/, '');
   if (c === 'ET') return 'Kutup, tundra';
@@ -3621,7 +3279,6 @@ function koppenTR(code) {
   return `${g}, ${dry}, ${sum}`;
 }
 
-// Arazi örtüsü: sınıf adına göre (Türkçe/İngilizce anahtar kelime) anlamlı renk
 const LC_RULES = [
   [/no ?data|unknown|bilinmey|tanimsiz|unclass|siniflandirilmam/, '#cccccc'],
   [/cloud|bulut/, '#616161'],
@@ -3651,7 +3308,6 @@ function _mixWhite(hex, t) {
 }
 function _fmtPct(p) { return p < 0.1 ? '<0,1' : p.toFixed(1).replace('.', ','); }
 
-// Değerler 0-1 oranı ise ×100; zaten yüzde ise dokunma (veri setinin tamamına bakarak karar verir)
 let _compScaleCache = {};
 function _compScale(origin) {
   if (_compScaleCache[origin] !== undefined) return _compScaleCache[origin];
@@ -3661,7 +3317,6 @@ function _compScale(origin) {
   return (_compScaleCache[origin] = (max > 0 && max <= 1.0000001) ? 100 : 1);
 }
 
-// Bir havza satırının bileşimi: [{key,label,short,pct,color}] büyükten küçüğe + toplam
 function getComposition(row, origin) {
   if (!row) return null;
   const k = _compScale(origin);
@@ -3689,14 +3344,13 @@ function getComposition(row, origin) {
       base = hit ? hit[1] : LC_FALLBACK[fb++ % LC_FALLBACK.length];
     }
     base = base || '#999999';
-    const n = (used[base] = (used[base] || 0) + 1);      // aynı renge düşen ikinci/üçüncü sınıfı açıkla ayır
+    const n = (used[base] = (used[base] || 0) + 1);
     it.color = n === 1 ? base : _mixWhite(base, Math.min(0.55, 0.22 * (n - 1)));
   });
   const total = items.reduce((a, b) => a + b.pct, 0);
   return { origin, items, total };
 }
 
-// Görüntü için: küçük payları "Diğer"e topla, eksik kalanı "Sınıflandırılmamış" göster
 function _groupComp(comp, minShare) {
   minShare = minShare == null ? 1 : minShare;
   const big = comp.items.filter(i => i.pct >= minShare);
@@ -3721,7 +3375,6 @@ function _barHTML(items, total) {
 function _sumText(comp) {
   return Math.abs(comp.total - 100) < 0.5 ? 'Toplam %100' : `Toplam %${_fmtPct(comp.total)}`;
 }
-// Havza paneli için: başlık + tek çubuk + renkli sınıf listesi
 function compositionHTML(comp, title, compact) {
   if (!comp) return '';
   const items = _groupComp(comp, 1);
@@ -3731,7 +3384,6 @@ function compositionHTML(comp, title, compact) {
         `<div class="comp-row" title="${escapeHtml(i.tip)}"><i style="background:${i.color}"></i><span class="comp-name">${escapeHtml(compact ? i.short : i.label)}</span><b>%${_fmtPct(i.pct)}</b></div>`).join('')
     + '</div></div>';
 }
-// Karşılaştırma tablosu hücresi için: çubuk + en büyük 3 sınıf
 function compositionMiniHTML(comp) {
   if (!comp) return '–';
   const items = _groupComp(comp, 1);
@@ -3739,7 +3391,6 @@ function compositionMiniHTML(comp) {
   return `<div class="comp-mini" style="text-align:left;min-width:150px">${_barHTML(items, comp.total)}<div class="comp-mini-txt">${top}${items.length > 3 ? ` · +${items.length - 3}` : ''}</div></div>`;
 }
 
-// ── Grafikler sekmesi: tek havzanın bileşim profili ─────────────────────────
 let _profRow = null;
 const _profCharts = {};
 function _profDestroy(id) { if (_profCharts[id]) { _profCharts[id].destroy(); delete _profCharts[id]; } }
@@ -3843,16 +3494,13 @@ function setupProfileCard() {
   profileAutoFromSelection();
 }
 
-// ─── CSV PARSE ────────────────────────────────────────────────────────────────
 function parseCSV(text) {
   const lines = text.split(/\r?\n/).filter(l => l.trim());
   if (lines.length < 2) return { headers: [], rows: [] };
 
-  // BOM temizle
   const rawHeader = lines[0].replace(/^\uFEFF/, '');
   const headers = splitCSVRow(rawHeader);
 
-  // Value_1..Value_30 -> Köppen kodları (Af, Am, ... EF)
   const koppenMap = remapKoppenHeaders(headers);
   for (let i = 0; i < headers.length; i++) {
     if (koppenMap[headers[i]]) headers[i] = koppenMap[headers[i]];
@@ -3865,7 +3513,6 @@ function parseCSV(text) {
     const row = {};
     headers.forEach((h, idx) => {
       let v = vals[idx] !== undefined ? vals[idx] : '';
-      // Sayısal dönüşüm
       const n = parseFloat(v);
       row[h] = (v !== '' && !isNaN(n) && isFinite(n)) ? n : v;
     });
@@ -3887,47 +3534,32 @@ function splitCSVRow(line) {
   return result;
 }
 
-// ─── ÇOKLU CSV KAYNAKLARI + BİRLEŞTİRME ──────────────────────────────────────
-// Data/ klasöründeki her CSV bağımsız bir "kaynak"tır. Tümü havza anahtarı
-// (OBJECTID / FID / OBJECTID_1) üzerinden tek bir tabloda birleştirilir.
-//   • Morphometry.csv  -> ana tablo (havza satırlarını ve sırasını belirler)
-//   • Koppen-Geiger.csv -> Value_N sütunları Köppen kodlarına çevrilir
-//   • Yeni kaynak eklemek için CSV_SOURCES listesine bir satır eklemek yeterli.
 const CSV_SOURCES = [
   { key: 'morphometry', label: 'Morfometri',    url: 'Data/Morphometry.csv',   primary: true },
   { key: 'koppen',      label: 'Köppen-Geiger', url: 'Data/Koppen-Geiger.csv' },
   { key: 'landcover',   label: 'Arazi Örtüsü',  url: 'Data/Landcover.csv' }
-  // { key: 'yeni_veri', label: 'Yeni Veri', url: 'Data/YeniVeri.csv' },
 ];
 const CSV_KEY_NAMES = ['OBJECTID', 'FID', 'OBJECTID_1'];
 
-// Ham ayrıştırılmış her kaynak burada durur: { key: {headers, rows, keyCol, label} }
 let csvSources = {};
-// Birleştirme sonrası: sütun -> hangi kaynaktan geldi (arayüz/uyarılar için)
 let columnOrigin = {};
 
 function findKeyColumn(headers) {
   return headers.find(h => CSV_KEY_NAMES.includes(h)) || null;
 }
 
-// Tek bir CSV metnini kaynak olarak kaydedip tüm kaynakları yeniden birleştirir.
-// (Sunucudan yükleme ve manuel yükleme aynı fonksiyonu kullanır.)
 function registerCSVSource(key, text, label) {
   const { headers, rows } = parseCSV(text);
   csvSources[key] = { headers, rows, keyCol: findKeyColumn(headers), label: label || key };
   return mergeCSVSources();
 }
 
-// Kaynakları anahtar üzerinden tek tabloda birleştirir; arayüzü yeniler.
-// Döndürülen nesne: { rows, headers, warnings[] }
 function mergeCSVSources() {
   const warnings = [];
   const order = CSV_SOURCES.map(d => d.key).filter(k => csvSources[k]);
-  // Tanımlı listede olmayan (manuel yüklenen) kaynaklar en sona
   Object.keys(csvSources).forEach(k => { if (!order.includes(k)) order.push(k); });
   if (!order.length) return { rows: [], headers: [], warnings };
 
-  // Ana tablo: primary işaretli, yoksa ilk yüklenen
   const primaryDef = CSV_SOURCES.find(d => d.primary && csvSources[d.key]);
   const baseKey = primaryDef ? primaryDef.key : order[0];
   const base = csvSources[baseKey];
@@ -3936,7 +3568,6 @@ function mergeCSVSources() {
   columnOrigin = {};
   base.headers.forEach(h => { columnOrigin[h] = baseKey; });
 
-  // Tabloyu havza anahtarına göre indeksle (anahtar yoksa satır sırasıyla birleşir)
   const merged = base.rows.map(r => Object.assign({}, r));
   const byKey = {};
   if (base.keyCol) merged.forEach(r => { byKey[String(r[base.keyCol])] = r; });
@@ -3944,10 +3575,8 @@ function mergeCSVSources() {
 
   order.filter(k => k !== baseKey).forEach(k => {
     const src = csvSources[k];
-    // Bu kaynağın eklenecek sütunları (anahtar sütunu hariç)
     const addCols = src.headers.filter(h => h !== src.keyCol);
 
-    // Sütun adı çakışması: mevcut sütun ezilmez, "<ad>_<kaynak>" olarak eklenir
     const rename = {};
     addCols.forEach(h => {
       if (headers.includes(h)) {
@@ -3976,7 +3605,6 @@ function mergeCSVSources() {
       if (unmatchedBase > 0) warnings.push(`"${src.label}": ana tablodaki ${unmatchedBase} havza için eşleşen satır bulunamadı (boş bırakıldı).`);
       if (unmatchedSrc  > 0) warnings.push(`"${src.label}": ${unmatchedSrc} satır ana tabloda karşılığı olmadığı için atlandı.`);
     } else {
-      // Anahtar sütun yoksa güvenli yol: satır sayıları eşitse sırayla birleştir, değilse atla
       if (src.rows.length === merged.length) {
         merged.forEach((t, i) => addCols.forEach(h => { t[rename[h] || h] = src.rows[i][h]; }));
         warnings.push(`"${src.label}": ${CSV_KEY_NAMES.join('/')} sütunu yok, satır sırasına göre birleştirildi.`);
@@ -3990,50 +3618,42 @@ function mergeCSVSources() {
   return { rows: merged, headers, warnings };
 }
 
-// Birleşmiş tabloyu uygulamanın global durumuna yazar ve arayüzü yeniler.
 function applyMergedTable(rows, headers) {
   _compScaleCache = {};
   csvHeaders = headers;
   csvData = rows;
   filteredData = [...rows];
 
-  // OBJECTID eşleme indeksi oluştur
   watershedById = {};
   const oidKey = findKeyColumn(headers);
   if (oidKey) {
     rows.forEach(r => { watershedById[String(r[oidKey])] = r; });
   }
 
-  // İstatistik güncelle
   document.getElementById('stat-watersheds').textContent = rows.length.toLocaleString('tr');
   document.getElementById('stat-fields').textContent = headers.length;
 
   buildTable();
   buildCharts();
 
-  // Point'ler CSV'den once yuklenmis olabilir; WID indeksini CSV ile yeniden esle
   if (pointGeoJSON) { try { reindexPointWIDs(); } catch (e) { console.warn('[point yeniden eşleme]', e.message); } }
 }
 
-// Geriye dönük uyumluluk: eski tek-CSV akışı (Data.csv) hâlâ çalışır.
 function onCSVLoaded(text) {
   return registerCSVSource('morphometry', text, 'Morfometri');
 }
 
-// ─── TABLE ────────────────────────────────────────────────────────────────────
 function buildTable() {
   renderTable(filteredData);
   updateExportBtn();
 }
 
-// Ham CSV sütun adı -> arayüzde gösterilen ad (veri dosyası değişmez, yalnızca görünüm)
 const COL_LABELS = {
   'Havza_Ad':  'DS\u0130 Havzas\u0131',
   'Ana_havza': 'DS\u0130 Havza Kodu'
 };
 function colLabel(h) { return COL_LABELS[h] || h; }
-const KOD_COL = 'Ana_havza';   // DSİ Havza Kodu
-// Grafik/filtre etiketi: Köppen sütunlarına açıklama, türetilmiş alanlara Türkçe ad ekler
+const KOD_COL = 'Ana_havza';
 const DERIVED_FIELDS = {
   '__dom_koppen':    { label: 'Baskın İklim Sınıfı (Köppen-Geiger)', origin: 'koppen' },
   '__dom_landcover': { label: 'Baskın Arazi Örtüsü',                 origin: 'landcover' }
@@ -4043,7 +3663,6 @@ function fieldLabel(h) {
   if (typeof koppenDescByCode !== 'undefined' && koppenDescByCode[h]) return `${h} · ${koppenDescByCode[h]}`;
   return colLabel(h);
 }
-// Bir kaynaktan gelen sayısal sütunlar içinde değeri en büyük olanın adı (baskın sınıf)
 function dominantClass(row, origin) {
   let best = null, bv = 0;
   for (const h of csvHeaders) {
@@ -4059,7 +3678,6 @@ function chartCatValue(row, field) {
 }
 const TABLE_HIDDEN_COLS = new Set(['OBJECTID','OBJECTID_1','FID','Shape_Leng','Shape_Length','Shape_Area','SHAPE_LENG','SHAPE_LENGTH','SHAPE_AREA']);
 
-// ─── Excel benzeri sütun genişliği ayarı: sürükle-yeniden-boyutlandır + çift tık ile otomatik sığdır ──
 let _colResizeState = null;
 
 function _startColResize(evt, col) {
@@ -4088,7 +3706,6 @@ function _onColResizeMove(evt) {
   const table = document.getElementById('attr-table');
   table._colWidths = table._colWidths || {};
   table._colWidths[_colResizeState.col] = newWidth;
-  // Toplam genişliği anlık güncelle
   let total = 0;
   table.querySelectorAll('colgroup col').forEach(c => total += parseFloat(c.style.width) || 0);
   table.style.width = total + 'px';
@@ -4110,30 +3727,25 @@ function renderTable(data) {
   const head = document.getElementById('tbl-head');
   const body = document.getElementById('tbl-body');
   const table = document.getElementById('attr-table');
-  // İklim (Köppen) ve arazi örtüsü payları havza panelinde renkli bileşim olarak gösterilir; tabloda sütun sütun listelenmez
-  // (CSV/Excel çıktısında yer almaya devam eder).
   const visHeaders = csvHeaders.filter(h => !TABLE_HIDDEN_COLS.has(h) && columnOrigin[h] !== 'koppen' && columnOrigin[h] !== 'landcover');
 
   const DEFAULT_MIN_PX = 70, DEFAULT_MAX_PX = 260;
-  const CHAR_PX = 7.2; // ortalama karakter genişliği (mono/sans karışık, kaba tahmin)
-  const PADDING_PX = 30; // hücre iç boşluğu + pay
+  const CHAR_PX = 7.2;
+  const PADDING_PX = 30;
   const SAMPLE_SIZE = 60;
-  const GOTO_COL_PX = 34; // "haritada göster" ikon kolonu, sabit genişlik
+  const GOTO_COL_PX = 34;
 
-  // Bir sütunun "auto-fit" (Excel'deki çift tık gibi) genişliğini gerçek metin ölçümüyle hesaplar
   const _measureCtx = document.createElement('canvas').getContext('2d');
   const _cs = getComputedStyle(document.documentElement);
   const _monoFont = (_cs.getPropertyValue('--font-mono') || 'monospace').trim();
   const _sansFont = (_cs.getPropertyValue('--font-sans') || 'sans-serif').trim();
-  const CELL_PAD_PX = 26 + 2;          // td/th yatay padding (13+13) + kenarlık payı
-  const HEAD_EXTRA_PX = 8 + 8;         // .th-label sağ boşluğu + boyutlandırma tutamacı
-  const AUTOFIT_MAX_PX = 900;          // çift tık ile sığdırmada üst sınır
+  const CELL_PAD_PX = 26 + 2;
+  const HEAD_EXTRA_PX = 8 + 8;
+  const AUTOFIT_MAX_PX = 900;
   function autoFitWidth(h, sampleData, forceFull) {
-    // Başlık: 11px, 600 ağırlık, büyük harf, 0.5px harf aralığı
     _measureCtx.font = `600 11px ${_sansFont}`;
     const label = String(colLabel(h)).toUpperCase();
     let maxPx = _measureCtx.measureText(label).width + label.length * 0.5 + HEAD_EXTRA_PX;
-    // Hücreler: 12.5px mono, ekranda gösterilen biçimle (fmtCell) ölç
     _measureCtx.font = `12.5px ${_monoFont}`;
     const rows = (sampleData || data).slice(0, 500);
     for (const row of rows) {
@@ -4153,36 +3765,29 @@ function renderTable(data) {
   };
   function applyColWidths() {
     const cols = table.querySelectorAll('colgroup col');
-    let totalPx = GOTO_COL_PX; // sabit "haritada göster" ikon kolonu genişliği
+    let totalPx = GOTO_COL_PX;
     table._colWidths = table._colWidths || {};
     visHeaders.forEach((h, i) => {
-      // PERFORMANS: genişlik daha önce hesaplanmadıysa (ilk render veya yeni sütun)
-      // hesapla ve cache'le. Aksi halde her filtreleme/sıralamada tüm sütunlar için
-      // yeniden satır taraması yapılır — büyük veri setlerinde arama kutusuna
-      // yazarken gözle görülür bir gecikmeye yol açar.
       if (table._colWidths[h] === undefined) {
         table._colWidths[h] = autoFitWidth(h);
       }
       const w = table._colWidths[h];
-      if (cols[i + 1]) cols[i + 1].style.width = w + 'px'; // +1: index 0 goto-kolonu
+      if (cols[i + 1]) cols[i + 1].style.width = w + 'px';
       totalPx += w;
     });
     table.style.width = totalPx + 'px';
     table.style.minWidth = '100%';
   }
 
-  // Yazı tipleri geç yüklenirse ölçümler yanlış olur; yüklenince genişlikleri bir kez yeniden hesapla
   if (!window._fitFontsHooked && document.fonts && document.fonts.ready) {
     window._fitFontsHooked = true;
     document.fonts.ready.then(() => { table._colWidths = {}; applyColWidths(); });
   }
 
-  // Sütun genişliklerini yalnızca başlık seti değiştiğinde (yeni CSV yüklendiğinde)
-  // sıfırdan hesapla; sıralama/filtrelemede veya kullanıcı manuel ayarladığında korunur.
   const headerKey = visHeaders.join('|');
   if (table.dataset.colKey !== headerKey) {
     table.dataset.colKey = headerKey;
-    table._colWidths = {}; // yeni veri seti: önceki manuel ayarları sıfırla
+    table._colWidths = {};
     let colgroup = table.querySelector('colgroup');
     if (!colgroup) {
       colgroup = document.createElement('colgroup');
@@ -4207,7 +3812,6 @@ function renderTable(data) {
     if (typeof v === 'number') {
       return Number.isInteger(v) ? v : v.toFixed(2);
     }
-    // string olarak gelen sayıları da formatla
     const n = parseFloat(v);
     if (!isNaN(n) && String(v).trim() !== '' && String(v).includes('.')) {
       return n.toFixed(2);
@@ -4232,7 +3836,6 @@ function renderTable(data) {
   document.getElementById('tbl-count').textContent =
     `${data.length} havza gösteriliyor${data.length > 500 ? ' (ilk 500)' : ''}`;
 
-  // Üst scrollbar genişliğini tablonun gerçek scroll genişliğine eşitle
   requestAnimationFrame(() => {
     const bot = document.getElementById('tbl-scroll-bot');
     const ghost = document.getElementById('tbl-scroll-ghost');
@@ -4240,12 +3843,6 @@ function renderTable(data) {
   });
 }
 
-// PERFORMANS: her tuş vuruşunda tam filtreleme + tam tablo yeniden çizimi
-// (500 satır × N kolon innerHTML rebuild + sütun genişliği hesaplaması) senkron
-// olarak tetiklenirse, hızlı yazan bir kullanıcıda tarayıcı ana thread'i tıkanır
-// ve input kilitlenmiş gibi hissettirir. Debounce, kullanıcı yazmayı bir an
-// durdurana kadar (150ms) filtrelemeyi erteler; input alanının kendisi tarayıcı
-// tarafından zaten anlık güncellendiği için yazma deneyimi kesintisiz kalır.
 let _filterTableDebounceTimer = null;
 function filterTable() {
   if (_filterTableDebounceTimer) clearTimeout(_filterTableDebounceTimer);
@@ -4273,7 +3870,6 @@ function sortTable(col) {
 
 function exportCSV() {
   if (!csvHeaders.length) { alert('Önce CSV yükleyin.'); return; }
-  // Filtre aktifse filteredData, değilse tüm csvData kullanılır
   const dataToExport = filteredData.length < csvData.length ? filteredData : csvData;
   const isFiltered = dataToExport.length < csvData.length;
   const rows = [
@@ -4292,9 +3888,6 @@ function exportCSV() {
   a.click();
 }
 
-// UX: tablodaki aktif filtreye uyan havzaları tek tıkla haritada (çoklu seçim
-// olarak) gösterir. CSV satırlarını harita noktalarıyla önce OBJECTID → Poly_OID
-// üzerinden, bulamazsa WID üzerinden eşleştirir.
 async function showFilteredOnMap() {
   if (!filteredData.length) return;
   if (!pointGeoJSON || !Object.keys(pointIndexByWID).length && !Object.keys(pointIndexByPolyOID).length) {
@@ -4330,7 +3923,6 @@ async function showFilteredOnMap() {
   await addPointsToMultiSelection(matches);
 }
 
-// Filtre değiştiğinde buton metnini güncelle
 function updateExportBtn() {
   const btn = document.getElementById('export-btn');
   const mapBtn = document.getElementById('tbl-show-on-map-btn');
@@ -4343,7 +3935,6 @@ function updateExportBtn() {
     btn.textContent = `⬇ CSV İndir (${csvData.length} kayıt)`;
     btn.title = 'Tüm kayıtlar indirilir';
   }
-  // "Haritada Göster" yalnızca aktif bir filtre varken ve nokta verisi mevcutken anlamlı
   if (mapBtn) {
     const hasPoints = pointGeoJSON && Object.keys(pointIndexByWID).length > 0;
     mapBtn.style.display = (isFiltered && hasPoints) ? 'inline-flex' : 'none';
@@ -4351,10 +3942,8 @@ function updateExportBtn() {
   }
 }
 
-// ─── CHARTS (CSV'den) ─────────────────────────────────────────────────────────
 let scatterChart = null, boxChart = null;
 
-// İstatistik yardımcıları
 function calcStats(vals) {
   if (!vals.length) return null;
   const n    = vals.length;
@@ -4379,13 +3968,11 @@ function pearsonR(xs, ys) {
   return (dx&&dy) ? num/Math.sqrt(dx*dy) : 0;
 }
 
-// Hex → [R,G,B]
 function hexToRgb(hex) {
   const h = hex.replace('#','');
   return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
 }
 
-// 3-noktalı renk interpolasyonu: r ∈ [-1,+1]
 function corrColor(r) {
   const minHex = (document.getElementById('corr-color-min')||{value:'#d73027'}).value || '#d73027';
   const midHex = (document.getElementById('corr-color-mid')||{value:'#ffffbf'}).value || '#ffffbf';
@@ -4393,16 +3980,15 @@ function corrColor(r) {
   const cMin = hexToRgb(minHex), cMid = hexToRgb(midHex), cMax = hexToRgb(maxHex);
   let c;
   if (r < 0) {
-    const t = (r + 1); // 0..1  (r=-1 → t=0, r=0 → t=1)
+    const t = (r + 1);
     c = cMin.map((v,i) => Math.round(v + (cMid[i]-v)*t));
   } else {
-    const t = r;       // 0..1  (r=0 → t=0, r=1 → t=1)
+    const t = r;
     c = cMid.map((v,i) => Math.round(v + (cMax[i]-v)*t));
   }
   return `rgb(${c[0]},${c[1]},${c[2]})`;
 }
 
-// Rank dizisi hesapla (Spearman & Kendall için)
 function rankArray(arr) {
   const sorted = arr.map((v,i)=>({v,i})).sort((a,b)=>a.v-b.v);
   const ranks = new Array(arr.length);
@@ -4442,18 +4028,15 @@ function calcCorr(xs, ys, method) {
   if(method==='kendall')   return kendallTau(xs, ys);
   if(method==='dcor')      return distCorr(xs, ys);
   if(method==='mic')       return micCorr(xs, ys);
-  if(method==='partial')   return null; // özel — buildCorrMatrix içinde ele alınır
+  if(method==='partial')   return null;
   return pearsonR(xs, ys);
 }
 
-// ─── Mesafe Korelasyonu (Distance Correlation) ────────────────────────────────
-// Székely et al. (2007). Aralık: [0, 1]
 function distCorr(xs, ys) {
   const n = xs.length;
   if (n < 2) return 0;
 
   function centDist(arr) {
-    // n×n mesafe matrisi, çift ortalama merkezi
     const A = [];
     const rowMean = [], colMean = new Array(n).fill(0);
     let grand = 0;
@@ -4494,24 +4077,20 @@ function distCorr(xs, ys) {
   return Math.sqrt(Math.max(0, dXY) / Math.sqrt(dXX * dYY));
 }
 
-// ─── Maksimum Bilgi Katsayısı (MIC) — yaklaşık uygulama ─────────────────────
-// Reshef et al. (2011) ruhunda, grid tarama ile. Aralık: [0, 1]
 function micCorr(xs, ys) {
   const n = xs.length;
   if (n < 4) return 0;
 
-  const B = Math.pow(n, 0.6); // max grid boyutu
+  const B = Math.pow(n, 0.6);
   let maxMI = 0;
 
-  // Normalleştirilmiş rank (0..1)
   const rx = rankArray(xs).map(r => (r - 1) / (n - 1));
   const ry = rankArray(ys).map(r => (r - 1) / (n - 1));
 
-  const maxG = Math.min(8, Math.floor(B)); // hız için max 8×8 grid
+  const maxG = Math.min(8, Math.floor(B));
   for (let gx = 2; gx <= maxG; gx++) {
     for (let gy = 2; gy <= maxG; gy++) {
       if (gx * gy > B) continue;
-      // 2D histogram
       const hist = [];
       for (let i = 0; i < gx; i++) hist.push(new Array(gy).fill(0));
       for (let k = 0; k < n; k++) {
@@ -4519,7 +4098,6 @@ function micCorr(xs, ys) {
         const cj = Math.min(Math.floor(ry[k] * gy), gy - 1);
         hist[ci][cj]++;
       }
-      // Karşılıklı bilgi (MI)
       let mi = 0;
       const rowSum = hist.map(row => row.reduce((a, b) => a + b, 0));
       const colSum = Array.from({length: gy}, (_, j) => hist.reduce((a, row) => a + row[j], 0));
@@ -4530,7 +4108,6 @@ function micCorr(xs, ys) {
           if (p > 0 && pi > 0 && pj > 0)
             mi += p * Math.log2(p / (pi * pj));
         }
-      // Normalleştir: MI / log2(min(gx,gy))
       const norm = mi / Math.log2(Math.min(gx, gy));
       if (norm > maxMI) maxMI = norm;
     }
@@ -4538,36 +4115,28 @@ function micCorr(xs, ys) {
   return Math.min(1, Math.max(0, maxMI));
 }
 
-// ─── Kısmi Korelasyon (Partial Correlation) ───────────────────────────────────
-// Her X-Y çifti için kalan tüm CORR_PARAMS değişkenlerinin etkisi
-// regresyon artıklarıyla çıkarılır → Pearson(artık_X, artık_Y)
-// Korelasyon matrisi buildCorrMatrix içinde fields dizisi bilindiğinde çağrılır.
 function partialCorrMatrix(fields, workData) {
   if (!workData) workData = csvData;
   const n = workData.length;
-  // Her alan için sayısal vektörü çek
   const vecs = {};
   fields.forEach(f => {
     vecs[f] = workData.map(r => r[f]).filter(v => typeof v === 'number');
   });
 
-  // Ortak gözlem indeksleri (tüm alanlar için sayısal olan satırlar)
   const validIdx = workData.reduce((acc, r, i) => {
     if (fields.every(f => typeof r[f] === 'number')) acc.push(i);
     return acc;
   }, []);
 
-  if (validIdx.length < fields.length + 2) return null; // yetersiz veri
+  if (validIdx.length < fields.length + 2) return null;
 
-  // Her alan için diğer tüm alanlara karşı OLS artığını hesapla
   function residuals(targetF, controlFs) {
     const m = validIdx.length;
-    const p = controlFs.length + 1; // intercept dahil
+    const p = controlFs.length + 1;
 
     const y = validIdx.map(i => workData[i][targetF]);
     const Xs = validIdx.map(i => [1, ...controlFs.map(f => workData[i][f])]);
 
-    // XᵀX (p×p) ve Xᵀy (p×1)
     const XtX = Array.from({length:p}, () => new Array(p).fill(0));
     const Xty = new Array(p).fill(0);
     for (let i = 0; i < m; i++) {
@@ -4578,11 +4147,9 @@ function partialCorrMatrix(fields, workData) {
       }
     }
 
-    // Gauss eliminasyonu ile β çöz
     const beta = gaussSolve(XtX, Xty);
     if (!beta) return y.map(() => 0);
 
-    // Artıklar
     return y.map((yi, i) => {
       let pred = 0;
       for (let a = 0; a < p; a++) pred += beta[a] * Xs[i][a];
@@ -4590,7 +4157,6 @@ function partialCorrMatrix(fields, workData) {
     });
   }
 
-  // Gauss eliminasyonu (pivot ile)
   function gaussSolve(A, b) {
     const n = b.length;
     const M = A.map((row, i) => [...row, b[i]]);
@@ -4609,14 +4175,12 @@ function partialCorrMatrix(fields, workData) {
     return M.map((row, i) => row[n] / row[i]);
   }
 
-  // Her alan için artıkları hesapla
   const resids = {};
   fields.forEach(f => {
     const controls = fields.filter(g => g !== f);
     resids[f] = residuals(f, controls);
   });
 
-  // Kısmi korelasyon matrisi: Pearson(artık_i, artık_j)
   const mat = {};
   fields.forEach(f1 => {
     mat[f1] = {};
@@ -4633,29 +4197,23 @@ function buildCharts() {
   const _sample = csvData.slice(0, 200);
   const numFields = csvHeaders.filter(h => _sample.some(r => typeof r[h] === 'number'));
   const catFields = csvHeaders.filter(h => {
-    if (h === KOD_COL) return true;   // DSİ Havza Kodu sayısal olsa da kategoridir
+    if (h === KOD_COL) return true;
     const v = (_sample.find(r => r[h] !== '' && r[h] != null) || {})[h];
     return typeof v === 'string' && v.length < 60;
   });
   const koppenCols = numFields.filter(h => columnOrigin[h] === 'koppen');
   const landCols   = numFields.filter(h => columnOrigin[h] === 'landcover');
-  // Türetilmiş kategorik alanlar (yalnızca ilgili kaynak yüklüyse)
   const derivedCat = [];
   if (koppenCols.length) derivedCat.push('__dom_koppen');
   if (landCols.length)   derivedCat.push('__dom_landcover');
   const optHtml = (f, sel) => `<option value="${escapeHtml(f)}"${sel ? ' selected' : ''}>${escapeHtml(fieldLabel(f))}</option>`;
-  // Alanları kaynağa göre gruplu <option> olarak üretir; tek grup varsa düz liste
   const groupedOpts = (morph, pickSelected) => {
-    // Köppen / Arazi Örtüsü sütunları havza içi yüzde payıdır (bileşimsel veri); histogram,
-    // scatter ve bar graph gibi tekil sayısal analizlere sokulmaz. Onlar için ayrı
-    // "Bileşim Analizi" kartı var.
     const groups = [['Morfometri', morph]].filter(g => g[1].length);
     let idx = 0;
     const body = g => g[1].map(f => optHtml(f, pickSelected && pickSelected(idx++))).join('');
     return groups.length > 1 ? groups.map(g => `<optgroup label="${g[0]}">${body(g)}</optgroup>`).join('') : groups.map(body).join('');
   };
 
-  // Bh'dan Tc_Kirpich'e kadar olan morfometrik parametreler
   const morphStart = 'Bh';
   const morphEnd   = 'Tc_Kirpich';
   let inRange = false;
@@ -4667,23 +4225,16 @@ function buildCharts() {
   const chartFields = morphFields.length ? morphFields
     : numFields.filter(h => columnOrigin[h] !== 'koppen' && columnOrigin[h] !== 'landcover');
 
-  // ── Bilimsel palet seçicileri kur (bir kez) ──────────────────────────────
   _setupChartPaletteSelectors();
 
-  // ── Histogram select ──────────────────────────────────────────────────────
   const histSel = document.getElementById('chart-hist-sel');
   histSel.innerHTML = groupedOpts(chartFields);
   if (chartFields.length) updateHistChart();
 
-  // ── Kategorik select ──────────────────────────────────────────────────────
   const catSel = document.getElementById('chart-cat-sel');
   catSel.innerHTML = [...catFields, ...derivedCat].map(f => optHtml(f)).join('');
   if (catFields.length || derivedCat.length) updateCatChart();
 
-  // ── Scatter select ────────────────────────────────────────────────────────
-  // Scatter, morfometrik parametrelere ek olarak area_km2 (Alan) alanını da sunar;
-  // bu alan morphStart–morphEnd aralığının dışında kaldığı için chartFields'e dahil
-  // değildir, bu yüzden burada ayrıca ekleniyor (yalnızca CSV'de mevcutsa).
   const scatterFields = numFields.includes('area_km2') && !chartFields.includes('area_km2')
     ? [...chartFields, 'area_km2']
     : chartFields;
@@ -4695,21 +4246,18 @@ function buildCharts() {
   scCSel.innerHTML = '<option value="">Yok</option>' + catFields.map(f => optHtml(f)).join('');
   if (scatterFields.length >= 2) updateScatterChart();
 
-  // ── Box plot select ───────────────────────────────────────────────────────
   const boxSel = document.getElementById('box-field-sel');
   boxSel.innerHTML = groupedOpts(chartFields);
   if (chartFields.length) updateBoxPlot();
 
-  setupProfileCard();   // Havza bileşim profili (iklim + arazi örtüsü payları)
+  setupProfileCard();
 
-  // ── Korelasyon filtreleri ve global filtre doldur ────────────────────────────
   _populateCorrFilters();
   _populateGlobalFilter();
   const corrWrap = document.getElementById('corr-matrix-wrap');
   if (corrWrap) corrWrap.innerHTML = `<p style="padding:16px;color:var(--text3);font-style:italic;font-family:var(--font-sans);">⬆ Ayarları yapıp <strong>Hesapla</strong> butonuna basın.</p>`;
 }
 
-// ─── İstatistik grafikleri için bilimsel palet seçicilerini bir kez inşa et ──
 function _setupChartPaletteSelectors() {
   const histRow = document.getElementById('chart-hist-palette-row');
   if (histRow && !histRow.dataset.built) {
@@ -4760,7 +4308,6 @@ function updateCatChart() {
   _registerChart('chart-cat', catChart);
 }
 
-// Kategorik dağılım palet değişince çağrılır
 function onCatPaletteChange(key) {
   _sciPaletteState.cat = key;
   _renderPalettePreview('chart-cat-palette-sel', 'qual', key);
@@ -4780,8 +4327,6 @@ function updateHistChart() {
   vals.forEach(v => { const idx = Math.min(Math.floor((v-min)/binSize), binCount-1); bins[idx]++; });
   const labels = bins.map((_,i)=>(min+i*binSize).toFixed(2));
 
-  // Bilimsel sequential palet: her bin, kendi frekansına göre (düşükten yükseğe)
-  // palet üzerinde konumlanır — yoğunluğu renkle de okunabilir kılar.
   const paletteKey = _sciPaletteState.hist;
   const maxBin = Math.max(...bins, 1);
   const barColors = bins.map(b => _sampleSeqPalette(paletteKey, 100)[Math.round((b/maxBin)*99)]);
@@ -4804,7 +4349,6 @@ function updateHistChart() {
   _registerChart('chart-hist', histChart);
 }
 
-// Histogram palet değişince çağrılır
 function onHistPaletteChange(key) {
   _sciPaletteState.hist = key;
   _renderPalettePreview('chart-hist-palette-sel', 'seq', key);
@@ -4823,17 +4367,14 @@ function updateScatterChart() {
   const catMap = {};
   let catIdx = 0;
 
-  // WID alanını bul (önce 'WID', sonra 'Havza_Ad', sonra ilk string alan)
   const widField = csvHeaders.find(h => h === 'WID')
     || csvHeaders.find(h => h === 'Havza_Ad')
     || csvHeaders.find(h => typeof csvData[0]?.[h] === 'string' && csvData[0][h].length < 60)
     || null;
 
   const sample = getChartsData().filter(r => typeof r[xF]==='number' && typeof r[yF]==='number');
-  // max 2000 nokta
   const pts = sample.length > 2000 ? sample.filter((_,i)=>i%Math.ceil(sample.length/2000)===0) : sample;
 
-  // Korelasyon hesapla
   const xs = pts.map(r=>r[xF]); const ys = pts.map(r=>r[yF]);
   const r  = pearsonR(xs, ys);
   document.getElementById('scatter-corr').textContent = `Pearson r = ${r.toFixed(4)}  |  ${pts.length} nokta gösteriliyor`;
@@ -4860,7 +4401,6 @@ function updateScatterChart() {
       backgroundColor: singleColor + '99', pointRadius:3, pointHoverRadius:6 }];
   }
 
-  // Eğilim çizgisi dataset'i
   if (showTrend && xs.length >= 2) {
     const n = xs.length;
     const sumX  = xs.reduce((a,b)=>a+b,0);
@@ -4913,12 +4453,6 @@ function updateScatterChart() {
             }
           }
         },
-        // Fare tekerleği grafik alanının İÇİNDEYKEN scatter'ı yakınlaştırır/uzaklaştırır;
-        // alanın dışında olağan sayfa kaydırması çalışmaya devam eder (plugin sadece
-        // canvas üzerine wheel dinleyicisi ekler, window'a değil).
-        // Shift'e basılı tutup sürükleyerek de bir bölgeyi seçip o alana odaklanılabilir.
-        // En fazla uzaklaştırma orijinal (ilk yüklenen) görünüm olduğu için ayrı bir
-        // "zoom sıfırla" kontrolüne ihtiyaç yok — tekerlekle sona kadar uzaklaşmak yeterli.
         zoom: {
           zoom: {
             wheel: { enabled: true, speed: 0.08 },
@@ -4938,7 +4472,6 @@ function updateScatterChart() {
   });
   _registerChart('chart-scatter', scatterChart);
 
-  // Çift tıklama algılama: canvas'a bir kez native dblclick dinleyicisi bağla
   const canvasEl = document.getElementById('chart-scatter');
   if (!canvasEl._dblClickBound) {
     canvasEl.addEventListener('dblclick', (evt) => handleScatterPointActivate(evt, scatterChart, true));
@@ -4946,18 +4479,14 @@ function updateScatterChart() {
   }
 }
 
-// Scatter plot palet değişince çağrılır
 function onScatterPaletteChange(key) {
   _sciPaletteState.scatter = key;
   _renderPalettePreview('chart-scatter-palette-sel', 'qual', key);
   updateScatterChart();
 }
 
-
-
-// ─── Scatter noktasına çift tıklayınca haritada göster ───────────────────────
 function handleScatterPointActivate(evt, chart, isDblClick) {
-  if (!isDblClick) return; // tek tıkta sadece tooltip/varsayılan davranış, seçim yalnızca çift tıkta tetiklenir
+  if (!isDblClick) return;
   if (!chart) return;
   const points = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
   if (!points.length) return;
@@ -4970,9 +4499,7 @@ function handleScatterPointActivate(evt, chart, isDblClick) {
   goToPointFromCSVRow(row);
 }
 
-// CSV satırından (Poly_OID/OBJECTID/WID üzerinden) ilgili harita noktasını bulup seç
 function goToPointFromCSVRow(row) {
-  // 1) OBJECTID/FID/OBJECTID_1 alanından Poly_OID eşleşmesi dene
   const oidKeys = ['OBJECTID', 'FID', 'OBJECTID_1'];
   let entry = null;
   for (const k of oidKeys) {
@@ -4981,11 +4508,9 @@ function goToPointFromCSVRow(row) {
       break;
     }
   }
-  // 2) WID alanından dene
   if (!entry && row['WID'] !== undefined && pointIndexByWID[String(row['WID'])]) {
     entry = pointIndexByWID[String(row['WID'])];
   }
-  // 3) Havza_Ad alanından dene
   if (!entry && row['Havza_Ad'] !== undefined && pointIndexByWID[String(row['Havza_Ad'])]) {
     entry = pointIndexByWID[String(row['Havza_Ad'])];
   }
@@ -4998,9 +4523,7 @@ function goToPointFromCSVRow(row) {
   goToPointEntry(entry);
 }
 
-// Tabloda WID hücresine çift tıklayınca haritada göster
 function goToPointByWID(wid) {
-  // Çift tıklamada tarayıcının otomatik kelime seçimini (alt çizgiden önce/sonra kısmi seçim) temizle
   const sel = window.getSelection && window.getSelection();
   if (sel) sel.removeAllRanges();
   const entry = pointIndexByWID[String(wid)];
@@ -5015,7 +4538,6 @@ function updateBoxPlot() {
   const field = document.getElementById('box-field-sel').value;
   if (!field) return;
 
-  // Strahler_O gruplarına göre veri topla
   const groups = {};
   getChartsData().forEach(r => {
     const s = r['Strahler_O'];
@@ -5089,7 +4611,7 @@ function updateBoxPlot() {
                 `N   : ${s.n}`
               ];
             },
-            label: () => ''   // dataset etiketlerini gizle
+            label: () => ''
           }
         }
       },
@@ -5104,38 +4626,21 @@ function updateBoxPlot() {
   _registerChart('chart-box', boxChart);
 }
 
-
-// Bar Graph palet değişince çağrılır
 function onBoxPaletteChange(key) {
   _sciPaletteState.box = key;
   _renderPalettePreview('chart-box-palette-sel', 'qual', key);
   updateBoxPlot();
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// KORELASYON MATRİSİ — ÖNBELLEKLI (CACHE) SİSTEM
-// ───────────────────────────────────────────────
-// Mantık:
-//   1) CSV yüklenince veya "Önbelleği Yenile" butonuna basılınca
-//      _buildCorrCache() çalışır: tüm segment (havza×taban grubu kombinasyonu)
-//      ve tüm metot kombinasyonları için matrisler hesaplanır, corrCache'e yazılır.
-//   2) buildCorrMatrix() sadece render eder: cache'den okur, 0 ms hesaplama.
-//   3) Filtre değişince anında render, ağır hesaplama yok.
-// ═══════════════════════════════════════════════════════════════════════════════
-
 const CORR_PARAMS  = ['Bh','Hi','T','Dd','Rn','Lo','Fs','Kc','MRn','Rl','Rb','Tc_Kirpich'];
 const CORR_METHODS = ['pearson','spearman','kendall','dcor','mic','partial'];
 
-// corrCache[segmentKey][method] = { mat: {f1:{f2:val}}, n: count }
-// segmentKey örnekleri: "__ALL__", "Havza_Ad=Fırat", "Taban=A1", "Havza_Ad=Fırat||Taban=A1"
 let corrCache = {};
 let corrCacheBuilding = false;
 
-// CSV'deki sabit kolon adları
 const HAVZA_COL = 'Havza_Ad';
 const TABAN_COL = 'Taban';
 
-// ─── Segment anahtarı üret ────────────────────────────────────────────────────
 function _corrSegKey(havza, taban) {
   if (!havza && !taban) return '__ALL__';
   const parts = [];
@@ -5144,7 +4649,6 @@ function _corrSegKey(havza, taban) {
   return parts.join('||');
 }
 
-// ─── Segment için veri alt kümesi ────────────────────────────────────────────
 function _corrSubset(havza, taban, kod) {
   return csvData.filter(r =>
     (!havza || r[HAVZA_COL] === havza) &&
@@ -5153,10 +4657,9 @@ function _corrSubset(havza, taban, kod) {
   );
 }
 
-// ─── Tek bir (subset × method) çifti için ham matris hesapla ─────────────────
 function _computeRawMatrix(subset, method, fields) {
   if (method === 'partial') {
-    return partialCorrMatrix(fields, subset); // {f1:{f2:val}} veya null
+    return partialCorrMatrix(fields, subset);
   }
   const mat = {};
   fields.forEach(f1 => {
@@ -5172,18 +4675,14 @@ function _computeRawMatrix(subset, method, fields) {
   return mat;
 }
 
-// ─── Tüm önbelleği arka planda inşa et ───────────────────────────────────────
-// Her segment × metot için sırayla (non-blocking, setTimeout slice ile) hesaplar.
 function _buildCorrCache(onDone) {
   if (!csvData.length) return;
   corrCache = {};
   corrCacheBuilding = true;
 
-  // Var olan segment anahtarlarını topla
   const havzaVals = ['', ...[...new Set(csvData.map(r => r[HAVZA_COL]).filter(Boolean))].sort()];
   const tabanVals = ['', ...[...new Set(csvData.map(r => r[TABAN_COL]).filter(Boolean))].sort()];
 
-  // (havza, taban) kombinasyonları — ama sadece n≥3 olanlar
   const segments = [];
   havzaVals.forEach(h => {
     tabanVals.forEach(t => {
@@ -5203,7 +4702,6 @@ function _buildCorrCache(onDone) {
     return;
   }
 
-  // Tüm işler: segment × method
   const jobs = [];
   segments.forEach(seg => {
     CORR_METHODS.forEach(method => {
@@ -5212,7 +4710,7 @@ function _buildCorrCache(onDone) {
   });
 
   let jobIdx = 0;
-  const CHUNK = 3; // her slice'ta kaç iş yapılır (UI donmaması için)
+  const CHUNK = 3;
 
   function runChunk() {
     const end = Math.min(jobIdx + CHUNK, jobs.length);
@@ -5223,7 +4721,6 @@ function _buildCorrCache(onDone) {
       corrCache[seg.key][method] = { mat: mat || {}, n: seg.subset.length, fields };
     }
     if (jobIdx < jobs.length) {
-      // İlerleme güncelle
       const pct = Math.round(jobIdx / jobs.length * 100);
       _setCorrStatus(`⏳ Önbellek oluşturuluyor… %${pct} (${jobIdx}/${jobs.length} işlem)`);
       setTimeout(runChunk, 0);
@@ -5243,8 +4740,6 @@ function _setCorrStatus(msg) {
   if (el) el.textContent = msg;
 }
 
-// ─── Filtre dropdownlarını doldur ────────────────────────────────────────────
-// Hazır renk paletleri
 const CORR_PALETTES = [
   { name: 'RdYlGn',  min: '#d73027', mid: '#ffffbf', max: '#1a9641' },
   { name: 'RdBu',    min: '#ca0020', mid: '#f7f7f7', max: '#0571b0' },
@@ -5256,16 +4751,6 @@ const CORR_PALETTES = [
   { name: 'Gri',     min: '#1a1a1a', mid: '#e0e0e0', max: '#ffffff' },
 ];
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// BİLİMSEL RENK PALETİ KÜTÜPHANESİ — İstatistik grafikleri için
-// ───────────────────────────────────────────────────────────────────────────────
-// Üç aile:
-//   • QUAL   (kategorik/nitel)   → Kategorik Dağılım, Scatter (renk boyutu), Bar Graph grupları
-//   • SEQ    (sıralı/nicel)      → Histogram (tek değişken yoğunluk/frekans)
-//   • DIV    (ıraksak, orta noktalı) → gerektiğinde referans (Korelasyon zaten kendi setine sahip)
-// Kaynak aileler: ColorBrewer (Harrower & Brewer 2003), Okabe–Ito (2008, renk körlüğüne duyarlı),
-// Viridis ailesi (matplotlib/Van der Walt & Smith), Tableau10.
-// ═══════════════════════════════════════════════════════════════════════════════
 const SCI_PALETTES_QUAL = {
   okabeito: { name: 'Okabe–Ito (Renk Körlüğü Güvenli)', colors: ['#E69F00','#56B4E9','#009E73','#F0E442','#0072B2','#D55E00','#CC79A7','#000000'] },
   colorbrewer_set2: { name: 'ColorBrewer Set2', colors: ['#66c2a5','#fc8d62','#8da0cb','#e78ac3','#a6d854','#ffd92f','#e5c494','#b3b3b3'] },
@@ -5285,7 +4770,6 @@ const SCI_PALETTES_SEQ = {
   greens:  { name: 'ColorBrewer Greens', stops: ['#f7fcf5','#e5f5e0','#c7e9c0','#a1d99b','#74c476','#41ab5d','#238b45','#006d2c','#00441b'] },
 };
 
-// Aktif seçili palet anahtarları (grafik bazlı state)
 let _sciPaletteState = {
   hist: 'viridis',
   cat: 'okabeito',
@@ -5293,14 +4777,13 @@ let _sciPaletteState = {
   box: 'colorbrewer_set2',
 };
 
-// Bir sequential palette'ten N adet basamak (sample) üret — eşit aralıklı interpolasyon
 function _sampleSeqPalette(key, n) {
   const pal = SCI_PALETTES_SEQ[key] || SCI_PALETTES_SEQ.viridis;
   const stops = pal.stops;
   if (n <= 1) return [stops[Math.floor(stops.length/2)]];
   const out = [];
   for (let i = 0; i < n; i++) {
-    const t = i / (n - 1); // 0..1
+    const t = i / (n - 1);
     const pos = t * (stops.length - 1);
     const i0 = Math.floor(pos), i1 = Math.min(i0 + 1, stops.length - 1);
     const localT = pos - i0;
@@ -5309,7 +4792,6 @@ function _sampleSeqPalette(key, n) {
   return out;
 }
 
-// Bir qualitative paletten N adet renk döndür (yetersizse döngüsel tekrar)
 function _sampleQualPalette(key, n) {
   const pal = SCI_PALETTES_QUAL[key] || SCI_PALETTES_QUAL.okabeito;
   const c = pal.colors;
@@ -5318,14 +4800,12 @@ function _sampleQualPalette(key, n) {
   return out;
 }
 
-// Tek bir "temsili" renk (histogram gibi tek seri grafikler için palet ortası)
 function _seqSingleColor(key) {
   const pal = SCI_PALETTES_SEQ[key] || SCI_PALETTES_SEQ.viridis;
   const stops = pal.stops;
-  return stops[Math.floor(stops.length * 0.62)]; // orta-üst ton, okunabilir kontrast
+  return stops[Math.floor(stops.length * 0.62)];
 }
 
-// ─── Genel palet seçici UI üret (bir <select> döndürür, HTML string) ─────────
 function _buildPaletteSelector(elId, type, currentKey, onChangeFn) {
   const dict = type === 'seq' ? SCI_PALETTES_SEQ : SCI_PALETTES_QUAL;
   const opts = Object.entries(dict).map(([k, p]) =>
@@ -5342,7 +4822,6 @@ function _buildPaletteSelector(elId, type, currentKey, onChangeFn) {
     </div>`;
 }
 
-// Palet önizleme şeridini doldur (küçük renk çubukları)
 function _renderPalettePreview(elId, type, key) {
   const el = document.getElementById(elId + '-preview');
   if (!el) return;
@@ -5379,18 +4858,14 @@ function applyCorrPalette(key) {
   _renderCorrPalettePreview(key);
 }
 
-// Hex renk karıştırma yardımcısı
 function _blendHex(hex1, hex2, t) {
   const a = hexToRgb(hex1), b = hexToRgb(hex2);
   const c = a.map((v, i) => Math.round(v + (b[i] - v) * t));
   return '#' + c.map(v => v.toString(16).padStart(2, '0')).join('');
 }
 
-// ─── GLOBAL CHARTS FİLTRE STATE ──────────────────────────────────────────────
-// Tüm istatistik fonksiyonları bu state'e göre veriyi filtreler
 let _chartsFilterState = { type: '', value: '' };
 
-// Global filtreden aktif veri setini döndür
 function getChartsData() {
   if (!_chartsFilterState.type || !_chartsFilterState.value) return csvData;
   if (_chartsFilterState.type === 'havza')
@@ -5409,7 +4884,6 @@ function onChartsGlobalFilterChange(val) {
     const [type, ...rest] = val.split('::');
     _chartsFilterState = { type, value: rest.join('::') };
   }
-  // Badge güncelle
   const badge = document.getElementById('charts-filter-badge');
   const data = getChartsData();
   if (_chartsFilterState.value) {
@@ -5417,14 +4891,11 @@ function onChartsGlobalFilterChange(val) {
   } else {
     badge.textContent = `Tüm havzalar (${csvData.length})`;
   }
-  // Korelasyon matrisini de global state ile senkronize et
   _corrFilterState = { ..._chartsFilterState };
-  // Tüm grafikleri yeniden çiz
   updateHistChart();
   updateCatChart();
   updateScatterChart();
   updateBoxPlot();
-  // Korelasyon sonucunu sıfırla (yeniden Hesapla gereksin)
   const corrWrap = document.getElementById('corr-matrix-wrap');
   if (corrWrap) corrWrap.innerHTML = `<p style="padding:16px;color:var(--text3);font-style:italic;font-family:var(--font-sans);">⬆ Filtre değişti — <strong>Hesapla</strong> butonuna basın.</p>`;
 }
@@ -5476,24 +4947,17 @@ function _populateGlobalFilter() {
   if (badge) badge.textContent = `Tüm havzalar (${csvData.length})`;
 }
 
-// Aktif filtre state'i: { type: 'havza'|'taban'|'', value: '' }
-// Artık global filtreden senkronize edilir
 let _corrFilterState = { type: '', value: '' };
 
 function onCorrFilterChange(val) {
-  // Eski korelasyon filtresi — artık kullanılmıyor, global filtre yönetiyor
 }
 
 function _populateCorrFilters() {
   if (!csvData.length) return;
-  // Palet butonlarını oluştur
   _buildPaletteButtons();
-  // İlk paleti seç (RdYlGn)
   applyCorrPalette(0);
-  // Filtre artık global bardan geliyor, corr-filter-sel kaldırıldı
 }
 
-// ─── Ana render fonksiyonu — anlık hesaplama ─────────────────────────────────
 function buildCorrMatrix() {
   if (!csvData.length) return;
 
@@ -5520,12 +4984,10 @@ function buildCorrMatrix() {
     return;
   }
 
-  // Loading göster, butonu devre dışı bırak
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Hesaplanıyor…'; }
   wrap.innerHTML = `<p style="padding:16px;color:var(--accent);font-family:var(--font-sans);font-size:12px">⏳ Hesaplanıyor…</p>`;
   _setCorrStatus('⏳ Hesaplanıyor…');
 
-  // UI güncellensin, sonra hesapla
   setTimeout(() => {
     const mat = _computeRawMatrix(subset, method, fields);
     const n   = subset.length;
@@ -5537,7 +4999,6 @@ function buildCorrMatrix() {
       return;
     }
 
-    // Filtre bilgisi
     const filterParts = [];
     if (selHavza) filterParts.push(`DSİ Havzası: ${selHavza}`);
     if (selKod) filterParts.push(`DSİ Havza Kodu: ${selKod}`);
@@ -5582,7 +5043,6 @@ function _renderCorrMatrix(fields, method, mat, n) {
   if (method === 'partial') html += ` &nbsp;<span style="font-weight:400;color:var(--text3)">(diğer değişkenlerin etkisi giderilmiş)</span>`;
   html += `</p><table style="border-collapse:collapse;font-family:var(--font-sans);font-size:11px;">`;
 
-  // Başlık satırı
   html += `<tr><th style="width:${labelW}px"></th>`;
   fields.forEach(f => {
     html += `<th style="width:${cellSize}px;text-align:center;padding:4px 2px;writing-mode:vertical-rl;transform:rotate(180deg);max-height:90px;font-size:10px;color:var(--text2);font-weight:700">${f}</th>`;
@@ -5615,7 +5075,6 @@ function _renderCorrMatrix(fields, method, mat, n) {
   wrap.innerHTML = html;
 }
 
-// ─── TABS ─────────────────────────────────────────────────────────────────────
 function showTab(id, btn) {
   document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
@@ -5625,31 +5084,19 @@ function showTab(id, btn) {
   if (id === 'charts') { try { profileAutoFromSelection(); } catch (e) { console.warn('[profil]', e); } }
 }
 
-// ─── GİZLİ ÖZELLİK: manuel veri yükleme paneli ─────────────────────────────────
-// Normal kullanıcı için gerekli olmayan (geliştirici/yerel test amaçlı) manuel
-// dosya yükleme paneli varsayılan olarak gizli. Header'daki logoya (her sekmede
-// sabit duruyor) çift tıklayıp doğru parolayı girenler paneli açabilir. Bu bir
-// gerçek erişim kontrolü DEĞİLDİR (istemci tarafı, herkesin görebileceği kaynak
-// kodunda) — sadece rastgele tıklamayla karşılaşılmasın diye eğlenceli/hafif bir
-// gizleme katmanıdır.
 const DEV_PANEL_PASSWORD = 'platin';
 
 function promptDevPanelUnlock() {
   const panel = document.getElementById('dev-upload-panel');
   const alreadyOpen = panel.style.display !== 'none';
   if (alreadyOpen) {
-    // Panel zaten açık — logo tekrar çift tıklanınca sadece İndir sekmesine götür
     showTab('download', document.querySelector("nav button[onclick*=\"'download'\"]"));
     return;
   }
 
   const entered = window.prompt('🔒 Bu alan gizli. Parolayı biliyor musun?');
-  if (entered === null) return; // iptal edildi
+  if (entered === null) return;
 
-  // Türkçe klavyede büyük "İ" harfinin standart (Latin) toLowerCase() ile "i̇"ye
-  // (noktalı, iki kod noktalı) dönüşmesi "platin" ile birebir eşleşmeyi bozar;
-  // hem standart hem Türkçe-locale küçültme denenerek "PLATIN" ve "PLATİN"
-  // yazımlarının ikisi de kabul edilir.
   const trimmed = entered.trim();
   const matches = trimmed.toLowerCase() === DEV_PANEL_PASSWORD ||
                    trimmed.toLocaleLowerCase('tr') === DEV_PANEL_PASSWORD;
@@ -5662,12 +5109,8 @@ function promptDevPanelUnlock() {
   }
 }
 
+const highlightColor = '#c1272d';
 
-// ─── SEÇİLİ HAVZA RENGİ ──────────────────────────────────────────────────────
-const highlightColor = '#c1272d'; // tek seçimde sabit kırmızı
-
-// ─── GRAFİK İNDİRME ──────────────────────────────────────────────────────────
-// Chart.js instance haritası: canvasId → Chart instance
 const _chartInstances = {};
 function _registerChart(canvasId, chartObj) { _chartInstances[canvasId] = chartObj; }
 
@@ -5675,20 +5118,17 @@ function downloadChart(canvasId, filename) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
 
-  const EXPORT_RATIO = 6; // ekran pikselinin kaç katı (1080p ekranda ~6480px genişlik)
+  const EXPORT_RATIO = 6;
   const chartInst = _chartInstances[canvasId];
 
   if (chartInst) {
-    // 1) Mevcut pixelRatio'yu sakla
     const origRatio = chartInst.currentDevicePixelRatio || window.devicePixelRatio || 1;
 
-    // 2) Chart.js'in iç render'ını yüksek oran ile tetikle
     chartInst.currentDevicePixelRatio = EXPORT_RATIO;
-    chartInst.resize();   // canvas'ı EXPORT_RATIO ile yeniden boyutlandırır ve çizer
+    chartInst.resize();
 
-    // 3) Beyaz arka plan üzerine kopyala ve indir
     const out = document.createElement('canvas');
-    out.width  = canvas.width;   // resize sonrası canvas.width zaten büyümüş
+    out.width  = canvas.width;
     out.height = canvas.height;
     const ctx = out.getContext('2d');
     ctx.fillStyle = '#ffffff';
@@ -5700,14 +5140,12 @@ function downloadChart(canvasId, filename) {
     a.download = filename + '.png';
     a.click();
 
-    // 4) Orijinal boyuta geri dön
     chartInst.currentDevicePixelRatio = origRatio;
     chartInst.resize();
 
     return;
   }
 
-  // Fallback: chart instance yoksa klasik scale yöntemi
   const SCALE = 6;
   const offscreen = document.createElement('canvas');
   offscreen.width  = canvas.width  * SCALE;
@@ -5724,12 +5162,11 @@ function downloadChart(canvasId, filename) {
   a.click();
 }
 
-// Korelasyon matrisi gibi HTML tabanlı içerikler için
 function downloadDivAsImage(divId, filename) {
   const div = document.getElementById(divId);
   if (!div) return;
 
-  const SCALE = 8; // ~800 dpi — keskin metin ve hücre kenarları
+  const SCALE = 8;
   html2canvas(div, {
     scale: SCALE,
     backgroundColor: '#ffffff',
@@ -5750,12 +5187,6 @@ function downloadDivAsImage(divId, filename) {
   });
 }
 
-// Görünen Leaflet haritasını (tile + havza sınırı + mansap noktaları + lejant) PNG olarak indir
-// html2canvas yerine leaflet-image kullanılıyor: bu kütüphane Leaflet'in kendi koordinat
-// hesaplamasını (map.project) kullanarak tile'ları çizdiğinden, html2canvas'ta görülen
-// "katmanlar birbirine göre kaymış" sorunu yaşanmaz. Not: cluster baloncukları (gruplanmış
-// noktalar) bilinçli olarak görsele dahil edilmiyor; leaflet-image bunları zaten çizmiyor
-// (özel DivIcon olduğu için), bu yüzden ek bir işlem yapılmıyor.
 function downloadMapAsImage() {
   const mapDiv = document.getElementById('map');
   const btn    = document.getElementById('map-download-btn');
@@ -5777,7 +5208,7 @@ function downloadMapAsImage() {
       return;
     }
 
-    const SCALE = 2; // çıktı netliği için ek ölçek
+    const SCALE = 2;
     const out = document.createElement('canvas');
     out.width  = baseCanvas.width  * SCALE;
     out.height = baseCanvas.height * SCALE;
@@ -5788,7 +5219,6 @@ function downloadMapAsImage() {
 
     const mapRect = mapDiv.getBoundingClientRect();
 
-    // ── Sağ alt köşedeki lejant kutusunu elle çiz ──────────────────────────────
     const legendEl = document.querySelector('.map-inline-legend');
     if (legendEl) {
       const lr = legendEl.getBoundingClientRect();
@@ -5818,8 +5248,7 @@ function downloadMapAsImage() {
       ctx.fillText('LEJANT', lx + pad, ty);
       ty += 18 * SCALE;
 
-      const sw = 13 * SCALE; // sembol boyutu
-      // Havza sınırı (kare)
+      const sw = 13 * SCALE;
       ctx.fillStyle = 'rgba(163,59,46,0.2)';
       ctx.strokeStyle = '#a33b2e';
       ctx.lineWidth = 2 * SCALE;
@@ -5830,7 +5259,6 @@ function downloadMapAsImage() {
       ctx.fillText('Havza Sınırı', lx + pad + sw + 7 * SCALE, ty);
       ty += 20 * SCALE;
 
-      // Mansap noktası (daire)
       ctx.beginPath();
       ctx.arc(lx + pad + sw/2, ty - sw/2 + 1 * SCALE, sw/2, 0, Math.PI * 2);
       ctx.fillStyle = '#9c5a34';
@@ -5848,7 +5276,6 @@ function downloadMapAsImage() {
   });
 }
 
-// ─── CITE ─────────────────────────────────────────────────────────────────────
 function copyCite() {
   const txt = document.getElementById('cite-text').innerText;
   navigator.clipboard.writeText(txt).then(() => {
@@ -5858,7 +5285,6 @@ function copyCite() {
   });
 }
 
-// ─── DOSYA OKUMA ─────────────────────────────────────────────────────────────
 function readFileAsText(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -5868,7 +5294,6 @@ function readFileAsText(file) {
   });
 }
 
-// Kart durumu güncelle
 function setCardState(key, state, msg, badge) {
   const card   = document.getElementById('ucard-' + key);
   const status = document.getElementById('ustatus-' + key);
@@ -5879,14 +5304,12 @@ function setCardState(key, state, msg, badge) {
   if (bdg && badge !== undefined) bdg.textContent = badge;
 }
 
-// Dosya boyutunu okunabilir yap
 function fmtSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
   return (bytes/(1024*1024)).toFixed(1) + ' MB';
 }
 
-// ─── BAĞIMSIZ TEK DOSYA YÜKLEME ──────────────────────────────────────────────
 async function loadSingle(key) {
   const inputId = { watershed:'file-watershed', river:'file-river', point:'file-point', csv:'file-csv', koppen:'file-koppen' }[key];
   const file = document.getElementById(inputId).files[0];
@@ -5895,7 +5318,6 @@ async function loadSingle(key) {
   const sizeMB = file.size / (1024 * 1024);
   setCardState(key, 'loading', 'Okunuyor... (' + fmtSize(file.size) + ')', '⟳');
 
-  // Cok buyuk dosya uyarisi (>100MB)
   if (sizeMB > 100) {
     setCardState(key, 'loading', 'Buyuk dosya (' + fmtSize(file.size) + '), lutfen bekleyin...', '⟳');
   }
@@ -5912,7 +5334,6 @@ async function loadSingle(key) {
       return;
     }
 
-    // JSON parse
     let data;
     try {
       data = JSON.parse(text);
@@ -5921,7 +5342,6 @@ async function loadSingle(key) {
       return;
     }
 
-    // TopoJSON veya GeoJSON kabul et (point icin sadece GeoJSON)
     const isTopojson = data && data.type === 'Topology';
     const isGeojson  = data && data.type === 'FeatureCollection';
 
@@ -5934,7 +5354,6 @@ async function loadSingle(key) {
       return;
     }
 
-    // Feature sayisi
     let count = 0;
     if (isGeojson) count = (data.features || []).length;
     else if (isTopojson) {
@@ -5975,9 +5394,6 @@ function fitMap() {
   } catch(e) {}
 }
 
-// ─── OTOMATİK YÜKLEME (sunucu klasöründen) ───────────────────────────────────
-// Sunucudaki CSV kaynaklarını paralel çeker, hepsi geldikten SONRA tek seferde birleştirir
-// (her dosyada tabloyu yeniden çizmek yerine bir kez çizmek hem hızlı hem tutarlı).
 async function loadCSVSourcesFromServer() {
   setCardState('csv', 'loading', 'Sunucudan yukluyor...', '⟳');
   const results = await Promise.all(CSV_SOURCES.map(async def => {
@@ -5997,7 +5413,6 @@ async function loadCSVSourcesFromServer() {
     } else missing.push(res.def.label);
   }
 
-  // Geçiş kolaylığı: Morphometry.csv yoksa eski Data.csv'yi dene
   if (!csvSources.morphometry) {
     try {
       const r = await fetch('Data/Data.csv');
@@ -6019,21 +5434,16 @@ async function loadCSVSourcesFromServer() {
   setCardState('csv', 'ok', loaded.join(' + ') + ' (sunucu)', '✓ ' + csvData.length + ' satir, ' + csvHeaders.length + ' sutun');
 }
 
-// Birleştirme uyarılarını kullanıcıya (ve konsola) bildirir. Sessizce veri kaybetme yok.
 function showMergeReport(warnings, missingLabels) {
   const msgs = [...warnings];
   (missingLabels || []).forEach(l => msgs.push(`"${l}" dosyası sunucuda bulunamadı, atlandı.`));
   msgs.forEach(m => console.warn('[CSV birleştirme]', m));
   const st = document.getElementById('ustatus-csv');
   if (st && msgs.length) st.title = msgs.join('\n');
-  // Sadece gerçek veri problemleri için (yalnızca "bulunamadı" değil) görünür rozet
   const badge = document.getElementById('ubadge-csv');
   if (badge && warnings.length) { badge.textContent = '⚠ ' + warnings.length; badge.title = warnings.join('\n'); }
 }
 
-// ─── AÇILIŞ EKRANI ───────────────────────────────────────────────────────────
-// Veri yüklenirken (noktalar, CSV'ler, genel havza katmanı) haritayı gizler; bitince kısa bir
-// minimum süre sonra yumuşakça kapanır. Hata olsa da 30 sn sonra mutlaka kapanır.
 const _splashStart = performance.now();
 function setSplash(pct, text) {
   const b = document.getElementById('splash-bar'), t = document.getElementById('splash-text');
@@ -6062,7 +5472,6 @@ async function autoLoad() {
         setCardState('point', 'ok', 'point.geojson (sunucu)', '✓ ' + c + ' nokta');
       }
     },
-    // CSV kaynakları (Morphometry, Koppen-Geiger, ...) aşağıda ayrıca yüklenir
   ];
 
   setSplash(10, 'Havza çıkış noktaları yükleniyor…');
@@ -6080,18 +5489,10 @@ async function autoLoad() {
     }
   }
 
-  // ── CSV kaynakları: her biri bağımsız çekilir, biri yoksa diğerleri etkilenmez ──
   setSplash(55, 'Morfometri verileri okunuyor…');
   await loadCSVSourcesFromServer();
   setSplash(80, 'Genel havza şeması hazırlanıyor…');
 
-  // Genel havza şeması (Basin_General.shp) — shpjs ile .shp/.dbf otomatik
-  // birleştirilip GeoJSON'a çevrilir, soluk bir referans katmanı olarak eklenir.
-  // Not: shp() fonksiyonuna doğrudan URL string'i vermek bazı ortamlarda
-  // ("Failed to construct 'URL': Invalid URL") relative path çözümleme hatası
-  // veriyor; bunun yerine .shp ve .dbf dosyalarını kendimiz fetch edip binary
-  // (ArrayBuffer) olarak obje şeklinde veriyoruz — bu kütüphanenin iç URL
-  // inşa adımını tamamen bypass eder.
   try {
     if (typeof shp !== 'function') {
       console.error('[basinGeneral] shpjs kütüphanesi yüklenemedi (CDN erişimi engellenmiş olabilir).');
@@ -6108,7 +5509,7 @@ async function autoLoad() {
       const prjTxt = prjResp.ok ? await prjResp.text() : undefined;
 
       const geo = await shp({ shp: shpBuf, dbf: dbfBuf, prj: prjTxt });
-      const fc  = Array.isArray(geo) ? geo[0] : geo; // birden fazla shp varsa ilkini al
+      const fc  = Array.isArray(geo) ? geo[0] : geo;
       if (fc && fc.features && fc.features.length) {
         L.geoJSON(fc, {
           style: () => ({ color: '#888888', weight: 1, opacity: 0.4, fillColor: '#888888', fillOpacity: 0.06, interactive: false, smoothFactor: 2.5 })
@@ -6126,7 +5527,6 @@ async function autoLoad() {
   fitMap();
 }
 
-// ─── KLASÖR YÜKLEME (polygons/) ──────────────────────────────────────────────
 function loadPolygonFolder(files) {
   const jsonFiles = Array.from(files).filter(f => f.name.endsWith('.json'));
   if (!jsonFiles.length) {
@@ -6136,7 +5536,6 @@ function loadPolygonFolder(files) {
   setCardState('watershed', 'ok', jsonFiles.length + ' havza dosyası hazır', '✓ ' + jsonFiles.length);
   document.getElementById('stat-watersheds').textContent = jsonFiles.length.toLocaleString('tr');
 
-  // Dosyaları OID'ye göre map'le, tıklamada kullanılacak
   window._polygonFileMap = {};
   jsonFiles.forEach(f => {
     const oid = f.name.replace('.json', '');
@@ -6144,7 +5543,6 @@ function loadPolygonFolder(files) {
   });
 }
 
-// Klasörden polygon yükle (onPointClick tarafından çağrılır)
 async function loadPolygonFromFolder(oid) {
   const map_ = window._polygonFileMap;
   if (!map_ || !map_[String(oid)]) return null;
@@ -6152,10 +5550,7 @@ async function loadPolygonFromFolder(oid) {
   return JSON.parse(text);
 }
 
-
-
 const canvasRenderer = L.canvas({ padding: 0.5 });
-// Dışarı tıklanınca WID öneri kutusunu kapat
 document.addEventListener('click', (e) => {
   const bar = document.querySelector('.map-search-bar');
   if (bar && !bar.contains(e.target)) {
@@ -6165,9 +5560,6 @@ document.addEventListener('click', (e) => {
 
 autoLoad().then(loadSelectionFromURL).catch(e => console.error('[autoLoad]', e)).finally(hideSplash);
 
-// ─── TEKNİK BİLGİ / METAVERİ (TUCBS bileşenlerine göre) ─────────────────────────
-// Tek kaynak: TECH_META. Hem sayfadaki açılır bölümler hem de indirilen XML/JSON buradan üretilir.
-// Bir değer değişecekse yalnızca bu nesne güncellenir.
 const TECH_META = {
   title: 'Türkiye Havza Morfometrisi Veri Seti',
   abstract: "Türkiye'nin akarsu havzalarına ve drenaj ağlarına ait morfometrik parametreleri içeren coğrafi veri seti.",
@@ -6284,9 +5676,37 @@ function downloadMetadata(kind) {
   }
 }
 renderTechMeta();
+
+const _mobileMQ = window.matchMedia('(max-width: 700px)');
+function mobileSheet(open) {
+  const sb = document.querySelector('.sidebar-left');
+  if (sb) sb.classList.toggle('open', open === undefined ? !sb.classList.contains('open') : open);
+}
+function mobileRevealPoint(latlng) {
+  try {
+    if (!latlng || !map) return;
+    const sb = document.querySelector('.sidebar-left');
+    const sheetH = sb ? sb.getBoundingClientRect().height : 0;
+    const rect = map.getContainer().getBoundingClientRect();
+    const visibleH = Math.min(map.getSize().y, window.innerHeight - rect.top - sheetH);
+    const pt = map.latLngToContainerPoint(latlng);
+    if (visibleH > 80 && pt.y > visibleH - 40) map.panBy([0, pt.y - visibleH / 2], { animate: true });
+  } catch (e) {}
+}
+(function () {
+  const hd = document.querySelector('.sidebar-left .card-header');
+  if (hd) hd.addEventListener('click', () => { if (_mobileMQ.matches) mobileSheet(); });
+  if (typeof onPointClick === 'function') {
+    const _orig = onPointClick;
+    onPointClick = async function (props, latlng) {
+      const r = await _orig.apply(this, arguments);
+      if (_mobileMQ.matches) { mobileSheet(true); setTimeout(() => mobileRevealPoint(latlng), 320); }
+      return r;
+    };
+  }
+})();
 </script>
 
-<!-- PAYLAŞIM BAĞLANTISI MODALI -->
 <div id="share-modal-overlay" onclick="if(event.target===this) closeShareModal()">
   <div id="share-modal" role="dialog" aria-modal="true" aria-labelledby="share-modal-title">
     <button id="share-modal-close" onclick="closeShareModal()" title="Kapat" aria-label="Kapat">✕</button>
