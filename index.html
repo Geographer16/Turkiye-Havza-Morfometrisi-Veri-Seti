@@ -687,6 +687,19 @@
   .about-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; }
   .about-card h3 { font-size: 16px; margin-bottom: 11px; font-family: var(--font-serif); font-weight: 600; color: var(--accent2); }
   .about-card p { font-size: 14px; line-height: 1.8; color: var(--text2); font-family:var(--font-sans); margin-bottom: 9px; }
+  /* TEKNİK BİLGİ (TUCBS metaveri) */
+  .tm-intro { font-size:12.5px !important; line-height:1.6 !important; margin-bottom:10px !important; }
+  #tech-meta details { border-top:1px solid var(--border); }
+  #tech-meta details:last-of-type { border-bottom:1px solid var(--border); }
+  #tech-meta summary { cursor:pointer; list-style:none; padding:9px 2px; font-family:var(--font-sans); font-size:13px; font-weight:600; color:var(--text); display:flex; align-items:center; gap:8px; }
+  #tech-meta summary::-webkit-details-marker { display:none; }
+  #tech-meta summary::before { content:'▸'; font-size:11px; color:var(--accent2); transition:transform .15s; }
+  #tech-meta details[open] > summary::before { transform:rotate(90deg); }
+  #tech-meta dl { margin:0 0 10px; display:grid; grid-template-columns:minmax(96px,34%) 1fr; gap:5px 12px; }
+  #tech-meta dt { font-family:var(--font-sans); font-size:12px; color:var(--text3, var(--text2)); }
+  #tech-meta dd { margin:0; font-family:var(--font-sans); font-size:13px; color:var(--text2); line-height:1.55; word-break:break-word; }
+  #tech-meta dd a { color:var(--accent2); }
+  .tm-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
   .about-card ul { padding-left: 16px; }
   .about-card li { font-size: 13px; color: var(--text2); font-family:var(--font-sans); line-height: 1.8; }
 
@@ -933,8 +946,6 @@
                 <button onclick="downloadSelectionAsPolygon()" title="Havza sınır geometrisi">🗺 Polygon İndir</button>
               </div>
               <div class="dlbar-note" id="dlbar-note"></div>
-              <div id="dlbar-col-preview"></div>
-              <div class="dlbar-gpkg-hint">ℹ GeoPackage (.gpkg) doğrudan üretilmiyor — indirdiğiniz GeoJSON'u <a href="https://qgis.org/" target="_blank" rel="noopener">QGIS</a>'e sürükleyip "Vektörü Farklı Kaydet → GeoPackage" ile saniyeler içinde dönüştürebilirsiniz.</div>
             </div>
           </div>
         </div>
@@ -1406,14 +1417,12 @@
       <div>
         <div class="about-card" style="margin-bottom:14px">
           <h3>Teknik Bilgi</h3>
-          <ul>
-            <li><strong>Format:</strong> SHP, GeoJSON, CSV</li>
-            <li><strong>CRS:</strong> WGS84 / EPSG:4326</li>
-            <li><strong>Katmanlar:</strong> Watershed (Polygon), RiverNetwork (Line), OutPoint (Point)</li>
-            <li><strong>Eşleme:</strong> OutPoint.Poly_OID → Watershed.OBJECTID</li>
-            <li><strong>Lisans:</strong> CC BY 4.0</li>
-            <li><strong>Platform:</strong> GitHub + Zenodo</li>
-          </ul>
+          <p class="tm-intro">Veri seti bilgileri, Türkiye Ulusal Coğrafi Bilgi Sistemi (TUCBS) metaveri bileşenleri esas alınarak düzenlenmiştir.</p>
+          <div id="tech-meta"></div>
+          <div class="tm-actions">
+            <button class="dl-btn btn-secondary" onclick="downloadMetadata('xml')" title="ISO 19115/19139 yapısında temel metaveri elemanları">⬇ Metaveri (XML)</button>
+            <button class="dl-btn btn-secondary" onclick="downloadMetadata('json')">⬇ Metaveri (JSON)</button>
+          </div>
         </div>
         <div class="about-card">
           <h3>İletişim</h3>
@@ -2391,7 +2400,7 @@ function updateDownloadBarUI() {
 
   updateNavSelectionBadge(entries.length);
 
-  if (!entries.length) { bar.classList.remove('visible'); renderDownloadColPreview([]); return; }
+  if (!entries.length) { bar.classList.remove('visible'); return; }
 
   bar.classList.add('visible');
   const n = entries.length;
@@ -2403,7 +2412,6 @@ function updateDownloadBarUI() {
   if (missingPoly) noteParts.push(`${missingPoly} havza için polygon henüz yüklenmedi/bulunamadı.`);
   note.textContent = noteParts.join(' ');
 
-  renderDownloadColPreview(entries);
 }
 
 // UX: "İndir" butonlarına basmadan önce, Excel çıktısında hangi sütunların
@@ -2422,25 +2430,6 @@ function buildExportRows(entries) {
     if (row['WID'] === undefined && row['Havza_Ad'] === undefined) row['WID'] = e.label;
     return row;
   });
-}
-
-function renderDownloadColPreview(entries) {
-  const el = document.getElementById('dlbar-col-preview');
-  if (!el) return;
-  if (!entries.length) { el.innerHTML = ''; return; }
-
-  const rows = buildExportRows(entries);
-  const colSet = new Set();
-  rows.forEach(row => Object.keys(row).forEach(k => colSet.add(k)));
-  const cols = Array.from(colSet);
-  const MAX_SHOW = 8;
-  const shown = cols.slice(0, MAX_SHOW);
-  const extra = cols.length - shown.length;
-
-  el.innerHTML = `<div class="dlbar-col-preview-inner">
-    <span class="dcp-label">Excel'de yer alacak sütunlar (${cols.length}):</span>
-    <span class="dcp-cols">${shown.map(c => `<span class="dcp-chip">${escapeHtml(c)}</span>`).join('')}${extra > 0 ? `<span class="dcp-chip dcp-more">+${extra} daha</span>` : ''}</span>
-  </div>`;
 }
 
 // UX: kullanıcı Tablo/İstatistik gibi başka bir sekmedeyken haritadaki seçimini
@@ -6122,6 +6111,131 @@ document.addEventListener('click', (e) => {
 });
 
 autoLoad().then(loadSelectionFromURL);
+
+// ─── TEKNİK BİLGİ / METAVERİ (TUCBS bileşenlerine göre) ─────────────────────────
+// Tek kaynak: TECH_META. Hem sayfadaki açılır bölümler hem de indirilen XML/JSON buradan üretilir.
+// Bir değer değişecekse yalnızca bu nesne güncellenir.
+const TECH_META = {
+  title: 'Türkiye Havza Morfometrisi Veri Seti',
+  abstract: "Türkiye'nin akarsu havzalarına ve drenaj ağlarına ait morfometrik parametreleri içeren coğrafi veri seti.",
+  version: '2.0',
+  metadataDate: '2026-10-01',
+  language: 'tur',
+  doi: '10.1007/s12665-025-12352-8',
+  license: 'CC BY 4.0',
+  bbox: { west: 23.6, east: 46.0, south: 33.7, north: 42.9 },
+  sections: [
+    { title: 'Veri Kimliği', open: true, rows: [
+      ['Başlık', 'Türkiye Havza Morfometrisi Veri Seti'],
+      ['Özet', "Türkiye'nin akarsu havzalarına ve drenaj ağlarına ait morfometrik parametreler (alan, çevre, drenaj yoğunluğu, form faktörleri vb.)."],
+      ['Sürüm', '2.0 (ilk sürüm Zenodo\'da yayımlanmıştır)'],
+      ['Son güncelleme', '1 Ekim 2026'],
+      ['Tanımlayıcı (DOI)', '10.1007/s12665-025-12352-8', 'https://doi.org/10.1007/s12665-025-12352-8'],
+      ['Konu', 'İç sular (inlandWaters), Yükseklik (elevation)'],
+      ['Üretim aracı', 'HydroMachine (ArcGIS)', 'https://github.com/Geographer16/HydroMachine']
+    ]},
+    { title: 'Coğrafi Konum ve Kapsam', rows: [
+      ['Kapsam', "Türkiye'nin hidrolojik sınırları. Havza sınırları idari sınırı aşabildiğinden kapsam idari sınırla birebir örtüşmez."],
+      ['Sınır kutusu', 'Batı 23,6° D · Doğu 46,0° D · Güney 33,7° K · Kuzey 42,9° K (yaklaşık)'],
+      ['Havza sayısı', '142.654']
+    ]},
+    { title: 'Kaynak Veriler ve Çözünürlük', rows: [
+      ['Yükseklik', 'FABDEM V1-2 (2023) · 30 m'],
+      ['Arazi örtüsü', 'Esri arazi örtüsü/kullanımı (2025) · 10 m'],
+      ['İklim', 'Köppen-Geiger sınıflandırması (2020 yılına kadar en güncel) · 1 km']
+    ]},
+    { title: 'Koordinat Referans Sistemi', rows: [
+      ['İşleme sistemi', 'TUREF / TM36 (EPSG:5256)'],
+      ['Web gösterimi', 'Bu arayüzdeki gösterim için WGS84 (EPSG:4326)\'e dönüştürülür; veri setinin kendisi TM36\'dır.']
+    ]},
+    { title: 'Katmanlar ve Yapı', rows: [
+      ['Watershed', 'Polygon: havza sınırları'],
+      ['RiverNetwork', 'Çizgi: drenaj ağı'],
+      ['OutPoint', 'Nokta: havza çıkış noktaları'],
+      ['Eşleme', 'OutPoint.Poly_OID → Watershed.OBJECTID']
+    ]},
+    { title: 'Kalite ve Soyağacı', rows: [
+      ['Üretim yöntemi', 'Morfometrik parametreler HydroMachine ile otomatik hesaplanmıştır.'],
+      ['Yöntem ve doğruluk', 'Ayrıntılar için yayımlanan makaleye bakınız.', 'https://doi.org/10.1007/s12665-025-12352-8']
+    ]},
+    { title: 'Erişim ve Kullanım Koşulları', rows: [
+      ['Lisans', 'CC BY 4.0', 'https://creativecommons.org/licenses/by/4.0/deed.tr'],
+      ['Kullanım kısıtı', 'Lisans dışında ek kısıt yoktur.'],
+      ['Atıf', 'Lütfen makaleye atıf yapınız.', 'https://doi.org/10.1007/s12665-025-12352-8']
+    ]},
+    { title: 'Dağıtım', rows: [
+      ['Biçimler', 'SHP, GeoJSON, CSV'],
+      ['Platformlar', 'GitHub ve Zenodo'],
+      ['GitHub', 'Turkiye-Havza-Morfometrisi-Veri-Seti', 'https://github.com/Geographer16/Turkiye-Havza-Morfometrisi-Veri-Seti'],
+      ['Zenodo', 'zenodo.org/records/15626608', 'https://zenodo.org/records/15626608']
+    ]},
+    { title: 'Metaveri Bilgisi', rows: [
+      ['Metaveri tarihi', '1 Ekim 2026'],
+      ['Metaveri dili', 'Türkçe'],
+      ['İletişim', 'Aşağıdaki İletişim bölümüne bakınız.']
+    ]}
+  ]
+};
+
+function renderTechMeta() {
+  const el = document.getElementById('tech-meta');
+  if (!el) return;
+  el.innerHTML = TECH_META.sections.map(sec => {
+    const rows = sec.rows.map(r => {
+      const v = r[2] ? `<a href="${escapeHtml(r[2])}" target="_blank" rel="noopener">${escapeHtml(r[1])}</a>` : escapeHtml(r[1]);
+      return `<dt>${escapeHtml(r[0])}</dt><dd>${v}</dd>`;
+    }).join('');
+    return `<details${sec.open ? ' open' : ''}><summary>${escapeHtml(sec.title)}</summary><dl>${rows}</dl></details>`;
+  }).join('');
+}
+
+function _xmlEsc(v) { return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function buildMetadataXml() {
+  const m = TECH_META, b = m.bbox;
+  const cs = t => `<gco:CharacterString>${_xmlEsc(t)}</gco:CharacterString>`;
+  const dec = v => `<gco:Decimal>${v}</gco:Decimal>`;
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<!-- Temel metaveri elemanları (ISO 19115/19139 yapısı). Resmî TUCBS Metaveri Editörü'ne aktarmadan önce eksik alanlar tamamlanmalıdır. -->
+<gmd:MD_Metadata xmlns:gmd="http://www.isotc211.org/2005/gmd" xmlns:gco="http://www.isotc211.org/2005/gco">
+  <gmd:language><gmd:LanguageCode codeList="http://www.loc.gov/standards/iso639-2/" codeListValue="${m.language}">${m.language}</gmd:LanguageCode></gmd:language>
+  <gmd:dateStamp><gco:Date>${m.metadataDate}</gco:Date></gmd:dateStamp>
+  <gmd:referenceSystemInfo><gmd:MD_ReferenceSystem><gmd:referenceSystemIdentifier><gmd:RS_Identifier>
+    <gmd:code>${cs('EPSG:5256')}</gmd:code><gmd:codeSpace>${cs('TUREF / TM36')}</gmd:codeSpace>
+  </gmd:RS_Identifier></gmd:referenceSystemIdentifier></gmd:MD_ReferenceSystem></gmd:referenceSystemInfo>
+  <gmd:identificationInfo><gmd:MD_DataIdentification>
+    <gmd:citation><gmd:CI_Citation>
+      <gmd:title>${cs(m.title)}</gmd:title>
+      <gmd:date><gmd:CI_Date><gmd:date><gco:Date>${m.metadataDate}</gco:Date></gmd:date></gmd:CI_Date></gmd:date>
+      <gmd:edition>${cs(m.version)}</gmd:edition>
+      <gmd:identifier><gmd:MD_Identifier><gmd:code>${cs('https://doi.org/' + m.doi)}</gmd:code></gmd:MD_Identifier></gmd:identifier>
+    </gmd:CI_Citation></gmd:citation>
+    <gmd:abstract>${cs(m.abstract)}</gmd:abstract>
+    <gmd:resourceConstraints><gmd:MD_LegalConstraints>
+      <gmd:useLimitation>${cs(m.license)}</gmd:useLimitation>
+    </gmd:MD_LegalConstraints></gmd:resourceConstraints>
+    <gmd:language><gmd:LanguageCode codeList="http://www.loc.gov/standards/iso639-2/" codeListValue="${m.language}">${m.language}</gmd:LanguageCode></gmd:language>
+    <gmd:topicCategory><gmd:MD_TopicCategoryCode>inlandWaters</gmd:MD_TopicCategoryCode></gmd:topicCategory>
+    <gmd:topicCategory><gmd:MD_TopicCategoryCode>elevation</gmd:MD_TopicCategoryCode></gmd:topicCategory>
+    <gmd:extent><gmd:EX_Extent><gmd:geographicElement><gmd:EX_GeographicBoundingBox>
+      <gmd:westBoundLongitude>${dec(b.west)}</gmd:westBoundLongitude><gmd:eastBoundLongitude>${dec(b.east)}</gmd:eastBoundLongitude>
+      <gmd:southBoundLatitude>${dec(b.south)}</gmd:southBoundLatitude><gmd:northBoundLatitude>${dec(b.north)}</gmd:northBoundLatitude>
+    </gmd:EX_GeographicBoundingBox></gmd:geographicElement></gmd:EX_Extent></gmd:extent>
+  </gmd:MD_DataIdentification></gmd:identificationInfo>
+  <gmd:distributionInfo><gmd:MD_Distribution>
+    <gmd:distributionFormat><gmd:MD_Format><gmd:name>${cs('SHP, GeoJSON, CSV')}</gmd:name><gmd:version>${cs('-')}</gmd:version></gmd:MD_Format></gmd:distributionFormat>
+  </gmd:MD_Distribution></gmd:distributionInfo>
+</gmd:MD_Metadata>
+`;
+}
+
+function downloadMetadata(kind) {
+  if (kind === 'xml') {
+    triggerBlobDownload(new Blob([buildMetadataXml()], { type: 'application/xml;charset=utf-8' }), 'havza_metaveri.xml');
+  } else {
+    triggerBlobDownload(new Blob([JSON.stringify(TECH_META, null, 2)], { type: 'application/json;charset=utf-8' }), 'havza_metaveri.json');
+  }
+}
+renderTechMeta();
 </script>
 
 <!-- PAYLAŞIM BAĞLANTISI MODALI -->
