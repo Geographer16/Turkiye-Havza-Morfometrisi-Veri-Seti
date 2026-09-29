@@ -1766,7 +1766,6 @@ function renderWatershed(data) {
 let riverLayer = null;
 
 function renderRiver(data) {
-  disableRiverTiles();
   layers.river.clearLayers();
   const geojson = (data.type === 'Topology') ? topoToGeoJSON(data) : data;
   riverGeoJSON  = geojson;
@@ -1777,83 +1776,11 @@ function renderRiver(data) {
 }
 
 function refreshRiver() {
-  if (!riverLayer) return;
   const z = map.getZoom();
   if (z >= 9) {
     if (!layers.river.hasLayer(riverLayer)) layers.river.addLayer(riverLayer);
   } else {
     if (layers.river.hasLayer(riverLayer)) layers.river.removeLayer(riverLayer);
-  }
-}
-
-/* ── Kademeli + karolu nehir yükleyici (Data/river/) ─────────────────────────
-   process_river.py çıktısını okur: index.json → kademeler (t1..t5) → karolar.
-   Sadece ekrandaki karolar ve yakınlaştırma seviyesine uygun kademeler yüklenir. */
-const RIVER_DIR = 'Data/river';
-let riverIndex = null, riverTilesOn = false;
-const riverTiles = new Map();          // 'tier/i_j' -> { layer, tier, i, j } | { loading:true }
-const RIVER_CACHE_MAX = 120;
-function riverStyleFor(c) {
-  const w = c >= 8 ? 2.8 : c >= 6 ? 2.1 : c >= 4 ? 1.6 : c >= 2 ? 1.1 : 0.8;
-  return { color:'#3f6b4a', weight:w, opacity:0.85, lineCap:'round', lineJoin:'round' };
-}
-async function initRiverTiles() {
-  try {
-    const r = await fetch(RIVER_DIR + '/index.json');
-    if (!r.ok) return false;
-    riverIndex = await r.json();
-  } catch (e) { return false; }
-  riverTilesOn = true;
-  map.on('moveend', updateRiverTiles);
-  updateRiverTiles();
-  return true;
-}
-function disableRiverTiles() {
-  if (!riverTilesOn) return;
-  riverTilesOn = false;
-  map.off('moveend', updateRiverTiles);
-  riverTiles.forEach(t => { if (t.layer) layers.river.removeLayer(t.layer); });
-  riverTiles.clear();
-}
-async function loadRiverTile(tier, i, j, key) {
-  riverTiles.set(key, { loading:true });
-  try {
-    const r = await fetch(`${RIVER_DIR}/${tier.id}/${i}_${j}.json`);
-    if (!r.ok) throw new Error(r.status);
-    const topo = await r.json();
-    if (!riverTilesOn) return;
-    const fc = topojson.feature(topo, topo.objects.r);
-    const layer = L.geoJSON(fc, { interactive:false, style: f => riverStyleFor(f.properties.grid_code) });
-    riverTiles.set(key, { layer, tier, i, j });
-    updateRiverTiles();
-  } catch (e) { riverTiles.delete(key); console.warn('[river] karo yüklenemedi', key, e); }
-}
-function updateRiverTiles() {
-  if (!riverTilesOn || !riverIndex) return;
-  const z = map.getZoom(), view = map.getBounds().pad(0.2);
-  const want = new Set();
-  for (const tier of riverIndex.tiers) {
-    if (z < tier.minZoom) continue;
-    const ts = tier.tile;
-    for (const k of tier.tiles) {
-      const [i, j] = k.split('_').map(Number);
-      if (!view.intersects(L.latLngBounds([j*ts, i*ts], [(j+1)*ts, (i+1)*ts]))) continue;
-      const key = tier.id + '/' + k;
-      want.add(key);
-      if (!riverTiles.has(key)) loadRiverTile(tier, i, j, key);
-    }
-  }
-  riverTiles.forEach((t, key) => {
-    if (!t.layer) return;
-    const show = want.has(key), has = layers.river.hasLayer(t.layer);
-    if (show && !has) layers.river.addLayer(t.layer);
-    else if (!show && has) layers.river.removeLayer(t.layer);
-  });
-  if (riverTiles.size > RIVER_CACHE_MAX) {          // ekran dışındaki eski karoları at
-    for (const [key, t] of riverTiles) {
-      if (riverTiles.size <= RIVER_CACHE_MAX) break;
-      if (t.layer && !want.has(key)) riverTiles.delete(key);
-    }
   }
 }
 
@@ -5698,11 +5625,6 @@ async function autoLoad() {
     }
   }
 
-  setSplash(45, 'Nehir ağı hazırlanıyor…');
-  if (await initRiverTiles()) {
-    const nT = riverIndex.tiers.reduce((s, t) => s + t.tiles.length, 0);
-    try { setCardState('river', 'ok', 'Data/river (kademeli, sunucu)', '✓ ' + nT + ' karo'); } catch (e) {}
-  }
   setSplash(55, 'Morfometri verileri okunuyor…');
   await loadCSVSourcesFromServer();
   setSplash(80, 'Genel havza şeması hazırlanıyor…');
