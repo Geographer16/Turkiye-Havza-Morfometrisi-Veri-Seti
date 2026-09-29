@@ -6121,16 +6121,16 @@ const TECH_META = {
   version: '2.0',
   metadataDate: '2026-10-01',
   language: 'tur',
-  doi: '10.1007/s12665-025-12352-8',
+  doi: '10.17211/tcd.1896223',
   license: 'CC BY 4.0',
   bbox: { west: 23.6, east: 46.0, south: 33.7, north: 42.9 },
   sections: [
     { title: 'Veri Kimliği', open: true, rows: [
       ['Başlık', 'Türkiye Havza Morfometrisi Veri Seti'],
-      ['Özet', "Türkiye'nin akarsu havzalarına ve drenaj ağlarına ait morfometrik parametreler (alan, çevre, drenaj yoğunluğu, form faktörleri vb.)."],
-      ['Sürüm', '2.0 (ilk sürüm Zenodo\'da yayımlanmıştır)'],
+      ['Özet', "Türkiye'nin akarsu havzalarına ve drenaj ağlarına ait morfometrik parametreler."],
+      ['Sürüm', '2.0 · Sürüm takibini Zenodo üzerinden yapabilirsiniz.', 'https://zenodo.org/records/15626608'],
       ['Son güncelleme', '1 Ekim 2026'],
-      ['Tanımlayıcı (DOI)', '10.1007/s12665-025-12352-8', 'https://doi.org/10.1007/s12665-025-12352-8'],
+      ['Tanımlayıcı (DOI)', '10.17211/tcd.1896223', 'https://doi.org/10.17211/tcd.1896223'],
       ['Konu', 'İç sular (inlandWaters), Yükseklik (elevation)'],
       ['Üretim aracı', 'HydroMachine (ArcGIS)', 'https://github.com/Geographer16/HydroMachine']
     ]},
@@ -6142,26 +6142,21 @@ const TECH_META = {
     { title: 'Kaynak Veriler ve Çözünürlük', rows: [
       ['Yükseklik', 'FABDEM V1-2 (2023) · 30 m'],
       ['Arazi örtüsü', 'Esri arazi örtüsü/kullanımı (2025) · 10 m'],
-      ['İklim', 'Köppen-Geiger sınıflandırması (2020 yılına kadar en güncel) · 1 km']
+      ['İklim', 'Köppen-Geiger sınıflandırması (1991–2020) · 1 km']
     ]},
     { title: 'Koordinat Referans Sistemi', rows: [
       ['İşleme sistemi', 'TUREF / TM36 (EPSG:5256)'],
-      ['Web gösterimi', 'Bu arayüzdeki gösterim için WGS84 (EPSG:4326)\'e dönüştürülür; veri setinin kendisi TM36\'dır.']
-    ]},
-    { title: 'Katmanlar ve Yapı', rows: [
-      ['Watershed', 'Polygon: havza sınırları'],
-      ['RiverNetwork', 'Çizgi: drenaj ağı'],
-      ['OutPoint', 'Nokta: havza çıkış noktaları'],
-      ['Eşleme', 'OutPoint.Poly_OID → Watershed.OBJECTID']
+      ['Web gösterimi', 'WGS84 (EPSG:4326)']
     ]},
     { title: 'Kalite ve Soyağacı', rows: [
       ['Üretim yöntemi', 'Morfometrik parametreler HydroMachine ile otomatik hesaplanmıştır.'],
-      ['Yöntem ve doğruluk', 'Ayrıntılar için yayımlanan makaleye bakınız.', 'https://doi.org/10.1007/s12665-025-12352-8']
+      ['Yöntem ve doğruluk', 'Ayrıntılar için veri seti makalesine bakınız.', 'https://doi.org/10.17211/tcd.1896223'],
+      ['Üretim aracı makalesi', 'HydroMachine', 'https://doi.org/10.1007/s12665-025-12352-8']
     ]},
     { title: 'Erişim ve Kullanım Koşulları', rows: [
       ['Lisans', 'CC BY 4.0', 'https://creativecommons.org/licenses/by/4.0/deed.tr'],
       ['Kullanım kısıtı', 'Lisans dışında ek kısıt yoktur.'],
-      ['Atıf', 'Lütfen makaleye atıf yapınız.', 'https://doi.org/10.1007/s12665-025-12352-8']
+      ['Atıf', 'Lütfen makaleye atıf yapınız.', 'https://doi.org/10.17211/tcd.1896223']
     ]},
     { title: 'Dağıtım', rows: [
       ['Biçimler', 'SHP, GeoJSON, CSV'],
