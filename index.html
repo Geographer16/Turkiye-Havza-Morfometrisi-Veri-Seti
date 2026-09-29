@@ -173,46 +173,6 @@
   .stat-lbl { font-size: 10.5px; color: var(--text2); font-family: var(--font-sans); text-transform: uppercase; letter-spacing: 0.6px; margin-top: 2px; }
   .stat-divider { width: 1px; height: 34px; background: var(--border); }
 
-  .upload-bar {
-    background: var(--surface2);
-    border-bottom: 1px solid var(--border);
-    padding: 12px 24px;
-  }
-  .upload-inner {
-    max-width: 1300px; margin: 0 auto;
-    display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap;
-  }
-  .upload-label {
-    font-size: 12px; font-family:var(--font-sans); color: var(--text2);
-    font-weight: 700; white-space: nowrap;
-    padding-top: 10px; letter-spacing: 0.4px; text-transform: uppercase;
-  }
-  .upload-card {
-    background: var(--surface);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 8px 10px;
-    display: flex; flex-direction: column; gap: 5px;
-    min-width: 180px; flex: 1;
-    transition: border-color 0.2s;
-  }
-  .upload-card.ok  { border-color: var(--green); background: var(--green-light); }
-  .upload-card.err { border-color: var(--red); background: var(--red-light); }
-  .upload-card.loading { border-color: var(--accent); background: var(--accent-light); }
-  .ucard-top { display: flex; align-items: center; gap: 6px; }
-  .ucard-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-  .ucard-name { font-size: 11px; font-family:var(--font-sans); font-weight: 700; color: var(--text); flex: 1; text-transform: uppercase; letter-spacing: 0.3px; }
-  .ucard-badge {
-    font-size: 10px; font-family:var(--font-sans); font-weight: 700;
-    padding: 1px 7px; border-radius: 10px;
-    background: var(--surface2); color: var(--text3);
-  }
-  .upload-card.ok  .ucard-badge { background: var(--green-light); color: var(--green-text); }
-  .upload-card.err .ucard-badge { background: var(--red-light); color: var(--red-text); }
-  .upload-card.loading .ucard-badge { background: var(--accent-light); color: var(--accent2); }
-  .upload-card input[type=file] { font-size: 11px; font-family:var(--font-sans); width: 100%; }
-  .ucard-status { font-size: 10px; font-family:var(--font-sans); color: var(--text3); min-height: 14px; }
-
   .main { width: 100%; padding: 0; }
   .tab-pane { display: none; }
   .tab-pane.active { display: block; }
@@ -745,7 +705,6 @@
 
   .comp-block { margin-top: 10px; }
   .comp-title { display:flex; justify-content:space-between; align-items:baseline; gap:8px; font-weight:600; font-size:12px; color:var(--text); margin-bottom:5px; }
-  .comp-sum { font-weight:500; font-size:10.5px; color:var(--text3); white-space:nowrap; }
   .comp-bar { display:flex; height:14px; border-radius:4px; overflow:hidden; border:1px solid var(--border); background:var(--surface2); }
   .comp-bar span { display:block; height:100%; min-width:1px; }
   .comp-legend { margin-top:6px; }
@@ -1021,8 +980,7 @@
   <div class="header-inner" style="padding-left:0;">
     <div class="header-brand">
       <img src="Data/HM_V2.png" alt="Hydro Machine Logo"
-        ondblclick="promptDevPanelUnlock()"
-        style="width:72px;height:72px;object-fit:contain;flex-shrink:0;mix-blend-mode:screen;filter:contrast(1.25) brightness(0.9);margin-left:-4px;cursor:pointer;">
+        style="width:72px;height:72px;object-fit:contain;flex-shrink:0;mix-blend-mode:screen;filter:contrast(1.25) brightness(0.9);margin-left:-4px;">
       <div>
         <div class="header-title" ondblclick="window.open('https://doi.org/10.17211/tcd.1896223','_blank','noopener')">Türkiye Akarsu Morfometrisi Veri Tabanı</div>
       </div>
@@ -1361,7 +1319,7 @@
         <div class="card-header-left"><span>◔</span><h3>Havza Bileşim Profili — İklim ve Arazi Örtüsü</h3></div>
       </div>
       <div class="chart-body">
-        <p class="prof-help">Bu veriler, seçilen havzanın <b>alanının yüzde kaçının hangi sınıfa ait olduğunu</b> gösterir; bir havza için tüm sınıfların toplamı %100'dür. Haritada bir havza seçtiyseniz burada otomatik açılır, ya da WID yazabilirsiniz.</p>
+        <p class="prof-help">Bu veriler, seçilen havzanın <b>alanının yüzde kaçının hangi sınıfa ait olduğunu</b> gösterir. Haritada bir havza seçtiyseniz burada otomatik açılır, ya da WID yazabilirsiniz.</p>
         <div class="prof-search">
           <input type="text" id="prof-search" placeholder="WID yazın (örn. 1024)" onkeydown="if(event.key==='Enter')profileSearch()">
           <button onclick="profileSearch()">Göster</button>
@@ -1391,52 +1349,6 @@
 
   <div id="tab-download" class="tab-pane">
    <div class="tab-inner">
-
-    <div class="upload-bar" id="dev-upload-panel" style="display:none; margin: 0 0 20px 0; border-radius: var(--radius); border: 1px solid var(--border);">
-      <div class="upload-inner">
-        <span class="upload-label">📂 Manuel Veri Yükleme</span>
-
-        <div class="upload-card" id="ucard-watershed">
-          <div class="ucard-top">
-            <div class="ucard-dot" style="background:#9c5a34"></div>
-            <span class="ucard-name">Havza Klasörü (polygons/)</span>
-            <span class="ucard-badge" id="ubadge-watershed">—</span>
-          </div>
-          <input type="file" id="file-watershed" webkitdirectory directory multiple onchange="loadPolygonFolder(this.files)">
-          <div class="ucard-status" id="ustatus-watershed">Klasör seçilmedi</div>
-        </div>
-
-        <div class="upload-card" id="ucard-point">
-          <div class="ucard-top">
-            <div class="ucard-dot" style="background:#a33b2e"></div>
-            <span class="ucard-name">Nokta GeoJSON</span>
-            <span class="ucard-badge" id="ubadge-point">—</span>
-          </div>
-          <input type="file" id="file-point" accept=".geojson,.json" onchange="loadSingle('point')">
-          <div class="ucard-status" id="ustatus-point">Dosya secilmedi</div>
-        </div>
-
-        <div class="upload-card" id="ucard-csv">
-          <div class="ucard-top">
-            <div class="ucard-dot" style="background:#8c5a1f"></div>
-            <span class="ucard-name">Morfometri CSV</span>
-            <span class="ucard-badge" id="ubadge-csv">—</span>
-          </div>
-          <input type="file" id="file-csv" accept=".csv" onchange="loadSingle('csv')">
-          <div class="ucard-status" id="ustatus-csv">Dosya secilmedi</div>
-        </div>
-
-        <div class="upload-card" id="ucard-koppen">
-          <div class="ucard-top">
-            <div class="ucard-dot" style="background:#2e7d5b"></div>
-            <span class="ucard-name">Köppen-Geiger CSV</span>
-            <span class="ucard-badge" id="ubadge-koppen">—</span>
-          </div>
-          <input type="file" id="file-koppen" accept=".csv" onchange="loadSingle('koppen')">
-          <div class="ucard-status" id="ustatus-koppen">Dosya secilmedi</div>
-        </div>
-      </div>
-    </div>
 
     <div class="section-title">İndirme</div>
     <div class="dl-grid" style="grid-template-columns:1fr 1fr;">
@@ -2582,9 +2494,6 @@ async function _fetchPolygonFeatureRaw(polyOID) {
       if (resp.ok) return await resp.json();
     } catch(e) {}
   }
-  if (window._polygonFileMap) {
-    try { return await loadPolygonFromFolder(polyOID); } catch(e) {}
-  }
   return await polygonFromSingleFile(polyOID);
 }
 
@@ -3508,13 +3417,10 @@ function _barHTML(items, total) {
   return '<div class="comp-bar">' + items.map(i =>
     `<span style="width:${(i.pct / denom * 100).toFixed(3)}%;background:${i.color}" title="${escapeHtml(i.tip)}"></span>`).join('') + '</div>';
 }
-function _sumText(comp) {
-  return Math.abs(comp.total - 100) < 0.5 ? 'Toplam %100' : `Toplam %${_fmtPct(comp.total)}`;
-}
 function compositionHTML(comp, title, compact) {
   if (!comp) return '';
   const items = _groupComp(comp, 1);
-  return `<div class="comp-block"><div class="comp-title"><span>${escapeHtml(title)}</span><span class="comp-sum">${_sumText(comp)}</span></div>`
+  return `<div class="comp-block"><div class="comp-title"><span>${escapeHtml(title)}</span></div>`
     + _barHTML(items, comp.total)
     + '<div class="comp-legend">' + items.map(i =>
         `<div class="comp-row" title="${escapeHtml(i.tip)}"><i style="background:${i.color}"></i><span class="comp-name">${escapeHtml(compact ? i.short : i.label)}</span><b>%${_fmtPct(i.pct)}</b></div>`).join('')
@@ -3563,7 +3469,7 @@ function _drawProfilePanel(prefix, comp, origin) {
   _registerChart(canvasId, ch);
   legendEl.innerHTML = '<div class="comp-legend">' + items.map(i =>
     `<div class="comp-row" title="${escapeHtml(i.tip)}"><i style="background:${i.color}"></i><span class="comp-name">${escapeHtml(i.label)}</span><b>%${_fmtPct(i.pct)}</b></div>`).join('')
-    + `</div><div class="comp-sum" style="margin-top:6px;text-align:right">${_sumText(comp)}</div>`;
+    + '</div>';
 }
 
 function showProfile(row) {
@@ -3799,6 +3705,7 @@ function fieldLabel(h) {
   if (typeof koppenDescByCode !== 'undefined' && koppenDescByCode[h]) return `${h} · ${koppenDescByCode[h]}`;
   return colLabel(h);
 }
+function catChartLabel(h) { return h === 'Taban' ? 'GTS' : fieldLabel(h); }
 function dominantClass(row, origin) {
   let best = null, bv = 0;
   for (const h of csvHeaders) {
@@ -4368,8 +4275,9 @@ function buildCharts() {
   if (chartFields.length) updateHistChart();
 
   const catSel = document.getElementById('chart-cat-sel');
-  catSel.innerHTML = [...catFields, ...derivedCat].map(f => optHtml(f)).join('');
-  if (catFields.length || derivedCat.length) updateCatChart();
+  catSel.innerHTML = [...catFields.filter(f => f !== 'WID'), ...derivedCat]
+    .map(f => `<option value="${escapeHtml(f)}">${escapeHtml(catChartLabel(f))}</option>`).join('');
+  if (catSel.options.length) updateCatChart();
 
   const scatterFields = numFields.includes('area_km2') && !chartFields.includes('area_km2')
     ? [...chartFields, 'area_km2']
@@ -4379,7 +4287,8 @@ function buildCharts() {
   const scCSel = document.getElementById('scatter-color-sel');
   scXSel.innerHTML = groupedOpts(scatterFields);
   scYSel.innerHTML = groupedOpts(scatterFields, i => i === 1);
-  scCSel.innerHTML = '<option value="">Yok</option>' + catFields.map(f => optHtml(f)).join('');
+  scCSel.innerHTML = '<option value="">Yok</option>' + catFields.filter(f => f !== 'WID')
+    .map(f => `<option value="${escapeHtml(f)}">${escapeHtml(catChartLabel(f))}</option>`).join('');
   if (scatterFields.length >= 2) updateScatterChart();
 
   const boxSel = document.getElementById('box-field-sel');
@@ -4437,7 +4346,7 @@ function updateCatChart() {
     options: {
       plugins: {
         legend: { position:'bottom', labels:{ font:{ size:10 }, padding:8 } },
-        title: { display: true, text: `Kategorik Dağılım — ${fieldLabel(field)}`, font: { size: 14, weight: 'bold', family: 'sans-serif' }, padding: { bottom: 10 } }
+        title: { display: true, text: `Kategorik Dağılım — ${catChartLabel(field)}`, font: { size: 14, weight: 'bold', family: 'sans-serif' }, padding: { bottom: 10 } }
       }
     }
   });
@@ -5068,7 +4977,7 @@ function _populateGlobalFilter() {
   }
 
   if (tabanVals.length) {
-    html += `<optgroup label="🗂 Taban Grubu">`;
+    html += `<optgroup label="🗂 GTS">`;
     html += tabanVals.map(v => {
       const n = csvData.filter(r => r[TABAN_COL] === v).length;
       return `<option value="taban::${v}">${v}  (${n})</option>`;
@@ -5138,7 +5047,7 @@ function buildCorrMatrix() {
     const filterParts = [];
     if (selHavza) filterParts.push(`DSİ Havzası: ${selHavza}`);
     if (selKod) filterParts.push(`DSİ Havza Kodu: ${selKod}`);
-    if (selTaban) filterParts.push(`Taban: ${selTaban}`);
+    if (selTaban) filterParts.push(`GTS: ${selTaban}`);
     _setCorrStatus(filterParts.length
       ? `✅ Hesaplandı | 🔍 ${filterParts.join(' + ')} → ${n} havza`
       : `✅ Hesaplandı | 📊 Tüm veri → ${n} havza`);
@@ -5218,31 +5127,6 @@ function showTab(id, btn) {
   if (btn) btn.classList.add('active');
   if (id === 'map') setTimeout(() => { setMapHeight(); map.invalidateSize(); }, 50);
   if (id === 'charts') { try { profileAutoFromSelection(); } catch (e) { console.warn('[profil]', e); } }
-}
-
-const DEV_PANEL_PASSWORD = 'platin';
-
-function promptDevPanelUnlock() {
-  const panel = document.getElementById('dev-upload-panel');
-  const alreadyOpen = panel.style.display !== 'none';
-  if (alreadyOpen) {
-    showTab('download', document.querySelector("nav button[onclick*=\"'download'\"]"));
-    return;
-  }
-
-  const entered = window.prompt('🔒 Bu alan gizli. Parolayı biliyor musun?');
-  if (entered === null) return;
-
-  const trimmed = entered.trim();
-  const matches = trimmed.toLowerCase() === DEV_PANEL_PASSWORD ||
-                   trimmed.toLocaleLowerCase('tr') === DEV_PANEL_PASSWORD;
-
-  if (matches) {
-    panel.style.display = '';
-    showTab('download', document.querySelector("nav button[onclick*=\"'download'\"]"));
-  } else {
-    alert('Yanlış parola. 🤫');
-  }
 }
 
 const highlightColor = '#c1272d';
@@ -5421,100 +5305,6 @@ function copyCite() {
   });
 }
 
-function readFileAsText(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload  = e => resolve(e.target.result);
-    reader.onerror = () => reject(new Error('Dosya okunamadi: ' + file.name));
-    reader.readAsText(file, 'utf-8');
-  });
-}
-
-function setCardState(key, state, msg, badge) {
-  const card   = document.getElementById('ucard-' + key);
-  const status = document.getElementById('ustatus-' + key);
-  const bdg    = document.getElementById('ubadge-' + key);
-  card.classList.remove('ok','err','loading');
-  if (state) card.classList.add(state);
-  if (status) status.textContent = msg || '';
-  if (bdg && badge !== undefined) bdg.textContent = badge;
-}
-
-function fmtSize(bytes) {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
-  return (bytes/(1024*1024)).toFixed(1) + ' MB';
-}
-
-async function loadSingle(key) {
-  const inputId = { watershed:'file-watershed', river:'file-river', point:'file-point', csv:'file-csv', koppen:'file-koppen' }[key];
-  const file = document.getElementById(inputId).files[0];
-  if (!file) return;
-
-  const sizeMB = file.size / (1024 * 1024);
-  setCardState(key, 'loading', 'Okunuyor... (' + fmtSize(file.size) + ')', '⟳');
-
-  if (sizeMB > 100) {
-    setCardState(key, 'loading', 'Buyuk dosya (' + fmtSize(file.size) + '), lutfen bekleyin...', '⟳');
-  }
-
-  try {
-    const text = await readFileAsText(file);
-
-    if (key === 'csv' || key === 'koppen') {
-      const srcKey = key === 'csv' ? 'morphometry' : 'koppen';
-      const srcLabel = key === 'csv' ? 'Morfometri' : 'Köppen-Geiger';
-      const res = registerCSVSource(srcKey, text, srcLabel);
-      showMergeReport(res.warnings, []);
-      setCardState(key, 'ok', file.name + ' | ' + fmtSize(file.size), '✓ ' + csvData.length + ' satir');
-      return;
-    }
-
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch(parseErr) {
-      setCardState(key, 'err', 'JSON parse hatasi: ' + parseErr.message, '✗');
-      return;
-    }
-
-    const isTopojson = data && data.type === 'Topology';
-    const isGeojson  = data && data.type === 'FeatureCollection';
-
-    if (key === 'point' && !isGeojson) {
-      setCardState(key, 'err', 'Gecersiz GeoJSON (FeatureCollection bekleniyor)', '✗');
-      return;
-    }
-    if ((key === 'watershed' || key === 'river') && !isTopojson && !isGeojson) {
-      setCardState(key, 'err', 'Gecersiz dosya (TopoJSON veya GeoJSON bekleniyor)', '✗');
-      return;
-    }
-
-    let count = 0;
-    if (isGeojson) count = (data.features || []).length;
-    else if (isTopojson) {
-      const objKey = Object.keys(data.objects)[0];
-      count = (data.objects[objKey].geometries || []).length;
-    }
-
-    if (key === 'river') {
-      renderRiver(data);
-      fitMap();
-      setCardState(key, 'ok', file.name + ' | ' + fmtSize(file.size), '✓ ' + count + ' hat');
-    }
-    else if (key === 'point') {
-      renderPoints(data);
-      fitMap();
-      setCardState(key, 'ok', file.name + ' | ' + fmtSize(file.size), '✓ ' + count + ' nokta');
-      document.getElementById('stat-points').textContent = count.toLocaleString('tr');
-    }
-
-  } catch (err) {
-    setCardState(key, 'err', 'Hata: ' + err.message, '✗');
-    console.error('[' + key + ']', err);
-  }
-}
-
 function fitMap() {
   try {
     const allL = [
@@ -5531,7 +5321,6 @@ function fitMap() {
 }
 
 async function loadCSVSourcesFromServer() {
-  setCardState('csv', 'loading', 'Sunucudan yukluyor...', '⟳');
   const results = await Promise.all(CSV_SOURCES.map(async def => {
     try {
       const r = await fetch(def.url);
@@ -5562,22 +5351,16 @@ async function loadCSVSourcesFromServer() {
   }
 
   if (!Object.keys(csvSources).length) {
-    setCardState('csv', '', 'Dosya secilmedi', '—');
     return;
   }
   const res = mergeCSVSources();
   showMergeReport(res.warnings, missing);
-  setCardState('csv', 'ok', loaded.join(' + ') + ' (sunucu)', '✓ ' + csvData.length + ' satir, ' + csvHeaders.length + ' sutun');
 }
 
 function showMergeReport(warnings, missingLabels) {
   const msgs = [...warnings];
   (missingLabels || []).forEach(l => msgs.push(`"${l}" dosyası sunucuda bulunamadı, atlandı.`));
   msgs.forEach(m => console.warn('[CSV birleştirme]', m));
-  const st = document.getElementById('ustatus-csv');
-  if (st && msgs.length) st.title = msgs.join('\n');
-  const badge = document.getElementById('ubadge-csv');
-  if (badge && warnings.length) { badge.textContent = '⚠ ' + warnings.length; badge.title = warnings.join('\n'); }
 }
 
 const _splashStart = performance.now();
@@ -5600,12 +5383,10 @@ async function autoLoad() {
     {
       key: 'point', url: 'Data/point.geojson', alt: 'Data/point.json',
       handler: async (r) => {
-        setCardState('point', 'loading', 'Sunucudan yukluyor...', '⟳');
         const d = await r.json();
         renderPoints(d);
         const c = (pointGeoJSON && pointGeoJSON.features || []).length;
         document.getElementById('stat-points').textContent = c.toLocaleString('tr');
-        setCardState('point', 'ok', 'point.geojson (sunucu)', '✓ ' + c + ' nokta');
       }
     },
   ];
@@ -5620,7 +5401,6 @@ async function autoLoad() {
     } catch (e) {
       if (e && e.message !== 'bulunamadi') {
         console.error('[autoLoad]', def.key, e);
-        setCardState(def.key, 'err', String(e.message || e).slice(0, 160), '✗');
       }
     }
   }
@@ -5661,29 +5441,6 @@ async function autoLoad() {
 
   setSplash(95, 'Harita hazırlanıyor…');
   fitMap();
-}
-
-function loadPolygonFolder(files) {
-  const jsonFiles = Array.from(files).filter(f => f.name.endsWith('.json'));
-  if (!jsonFiles.length) {
-    setCardState('watershed', 'err', 'JSON dosyası bulunamadı', '✗');
-    return;
-  }
-  setCardState('watershed', 'ok', jsonFiles.length + ' havza dosyası hazır', '✓ ' + jsonFiles.length);
-  document.getElementById('stat-watersheds').textContent = jsonFiles.length.toLocaleString('tr');
-
-  window._polygonFileMap = {};
-  jsonFiles.forEach(f => {
-    const oid = f.name.replace('.json', '');
-    window._polygonFileMap[oid] = f;
-  });
-}
-
-async function loadPolygonFromFolder(oid) {
-  const map_ = window._polygonFileMap;
-  if (!map_ || !map_[String(oid)]) return null;
-  const text = await readFileAsText(map_[String(oid)]);
-  return JSON.parse(text);
 }
 
 const canvasRenderer = L.canvas({ padding: 0.5 });
