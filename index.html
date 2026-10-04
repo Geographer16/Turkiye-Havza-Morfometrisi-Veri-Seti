@@ -2221,7 +2221,7 @@ async function onPointClick(props, latlng, shiftKey) {
       'Jeo_Era':     'Jeolojik D\u00F6nem',
       'Jeo_Desc':    'Litoloji',
       'TPI_Major':   'TPI',
-      'CN':          'E\u011fri Numaras\u0131 (CN)',
+      'CN':          'Curve Number (CN)',
     };
 
     const tpiClassMap = {
@@ -3861,7 +3861,7 @@ const CSV_SOURCES = [
   { key: 'morphometry', label: 'Morfometri',    url: 'Data/Morphometry.csv',   primary: true },
   { key: 'koppen',      label: 'Köppen-Geiger', url: 'Data/Koppen-Geiger.csv' },
   { key: 'landcover',   label: 'Arazi Örtüsü',  url: 'Data/Landcover.csv' },
-  { key: 'cn',          label: 'Eğri Numarası (CN)', url: 'Data/CN_data.csv' }
+  { key: 'cn',          label: 'Curve Number (CN)', url: 'Data/CN_data.csv' }
 ];
 const CSV_KEY_NAMES = ['OBJECTID', 'FID', 'OBJECTID_1'];
 
@@ -3979,7 +3979,7 @@ const COL_LABELS = {
   'GTS_KOD':    'GTS Kodu',
   'STRAHLER_O': 'Strahler',
   'AREA_KM2':   'Alan (km\u00b2)',
-  'CN':         'E\u011fri Numaras\u0131 (CN)'
+  'CN':         'Curve Number (CN)'
 };
 const _COL_LABELS_UP = {};
 Object.keys(COL_LABELS).forEach(k => { _COL_LABELS_UP[k.toUpperCase()] = COL_LABELS[k]; });
@@ -5972,7 +5972,8 @@ const TECH_META = {
     { title: 'Kaynak Veriler ve Çözünürlük', rows: [
       ['Yükseklik', 'FABDEM V1-2 (2023) · 30 m'],
       ['Arazi örtüsü', 'Esri arazi örtüsü/kullanımı (2025) · 10 m'],
-      ['İklim', 'Köppen-Geiger sınıflandırması (1991–2020) · 1 km']
+      ['İklim', 'Köppen-Geiger sınıflandırması (1991–2020) · 1 km'],
+      ['Curve Number (CN)', 'GCN250 (Jaafar vd., 2019) · 250 m', 'https://doi.org/10.1038/s41597-019-0155-x']
     ]},
     { title: 'Koordinat Referans Sistemi', rows: [
       ['İşleme sistemi', 'TUREF / TM36 (EPSG:5256)'],
@@ -5981,7 +5982,8 @@ const TECH_META = {
     { title: 'Kalite ve Soyağacı', rows: [
       ['Üretim yöntemi', 'Morfometrik parametreler HydroMachine ile otomatik hesaplanmıştır.'],
       ['Yöntem ve doğruluk', 'Ayrıntılar için veri seti makalesine bakınız.', 'https://doi.org/10.17211/tcd.1896223'],
-      ['Üretim aracı makalesi', 'HydroMachine', 'https://doi.org/10.1007/s12665-025-12352-8']
+      ['Üretim aracı makalesi', 'HydroMachine', 'https://doi.org/10.1007/s12665-025-12352-8'],
+      ['Curve Number (CN) kaynağı', 'GCN250, ESA CCI arazi örtüsü (2015) ile HYSOGs250m hidrolojik toprak grubu verisinin birleşiminden üretilmiş küresel bir veri setidir.']
     ]},
     { title: 'Erişim ve Kullanım Koşulları', rows: [
       ['Lisans', 'CC BY 4.0', 'https://creativecommons.org/licenses/by/4.0/deed.tr'],
