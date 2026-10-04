@@ -5954,6 +5954,15 @@ function renderTechMeta() {
     }).join('');
     return `<details${sec.open ? ' open' : ''}><summary>${escapeHtml(sec.title)}</summary><dl>${rows}</dl></details>`;
   }).join('');
+  // Akordeon: biri açılınca diğerleri kapanır (en son açılan açık kalır)
+  if (!el._accordion) {
+    el._accordion = true;
+    el.addEventListener('toggle', e => {
+      const d = e.target;
+      if (!d.open || d.tagName !== 'DETAILS') return;
+      el.querySelectorAll('details[open]').forEach(o => { if (o !== d) o.open = false; });
+    }, true);   // toggle olayı kabarcıklanmaz, bu yüzden capture ile dinlenir
+  }
 }
 
 function _xmlEsc(v) { return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
