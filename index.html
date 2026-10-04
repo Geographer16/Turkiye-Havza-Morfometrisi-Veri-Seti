@@ -1661,7 +1661,7 @@ const PointLayer = L.Layer.extend({
       feats[i] = { type: 'Feature', properties: { i }, geometry: { type: 'Point', coordinates: [ll[1], ll[0]] } };
       if (ll[0] < s) s = ll[0]; if (ll[0] > n) n = ll[0]; if (ll[1] < w) w = ll[1]; if (ll[1] > e) e = ll[1];
     }
-    this._idx = new Supercluster({ radius: 60, maxZoom: 16, minPoints: 5 }).load(feats);
+    this._idx = new Supercluster({ radius: 60, extent: 256, maxZoom: 16, minPoints: 5 })   /* extent 256 = Leaflet karo boyutu; yoksa yarıçap yarıya iner */.load(feats);
     this._bounds = entries.length ? L.latLngBounds([s, w], [n, e]) : null;
     this._schedule();
   },
