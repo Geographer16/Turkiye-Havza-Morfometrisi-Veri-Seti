@@ -40,8 +40,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css"/>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
 <style>
   :root {
     --bg: #f2eee3;
@@ -1010,7 +1008,7 @@ function spCore(cv,W,H,dpr,env,raf,still0){
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/supercluster@8.0.1/dist/supercluster.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
@@ -1632,37 +1630,123 @@ if (document.documentElement.classList.contains('dark-mode')) {
   switchBasemap('dark', false);
 }
 
+/* Noktalar: Supercluster + tek canvas. Nokta başına Leaflet nesnesi yok; yalnızca görünen kümeler çizilir. */
+const PointLayer = L.Layer.extend({
+  initialize() { this._entries = []; this._idx = null; this._hits = []; this._dim = false; this._raf = 0; this._bounds = null; this._hover = false; },
+  onAdd(map) {
+    if (!map.getPane('pointPane')) {
+      map.createPane('pointPane');
+      const pp = map.getPane('pointPane'); pp.style.zIndex = 390; pp.style.pointerEvents = 'none';
+    }
+    this._canvas = L.DomUtil.create('canvas', 'leaflet-zoom-animated');
+    map.getPane('pointPane').appendChild(this._canvas);
+    this._ctx = this._canvas.getContext('2d');
+    map.on('click', this._onClick, this);
+    map.on('mousemove', this._onMove, this);
+    this._update();
+  },
+  onRemove(map) {
+    cancelAnimationFrame(this._raf); this._raf = 0;
+    L.DomUtil.remove(this._canvas);
+    map.off('click', this._onClick, this);
+    map.off('mousemove', this._onMove, this);
+  },
+  getEvents() { return { move: this._schedule, moveend: this._update, zoomend: this._update, resize: this._update, zoomanim: this._animateZoom }; },
+  setData(entries) {
+    this._entries = entries;
+    const feats = new Array(entries.length);
+    let s = 90, w = 180, n = -90, e = -180;
+    for (let i = 0; i < entries.length; i++) {
+      const ll = entries[i].latlng;
+      feats[i] = { type: 'Feature', properties: { i }, geometry: { type: 'Point', coordinates: [ll[1], ll[0]] } };
+      if (ll[0] < s) s = ll[0]; if (ll[0] > n) n = ll[0]; if (ll[1] < w) w = ll[1]; if (ll[1] > e) e = ll[1];
+    }
+    this._idx = new Supercluster({ radius: 60, maxZoom: 16, minPoints: 5 }).load(feats);
+    this._bounds = entries.length ? L.latLngBounds([s, w], [n, e]) : null;
+    this._schedule();
+  },
+  clearLayers() { this._entries = []; this._idx = null; this._bounds = null; this._schedule(); },
+  getLayers() { return this._bounds ? [L.rectangle(this._bounds)] : []; },   // fitMap için sınırlar
+  setDim(d) { this._dim = !!d; this._schedule(); },
+  _schedule() {
+    if (!this._map || this._raf || this._map._animatingZoom) return;
+    this._raf = requestAnimationFrame(() => this._update());
+  },
+  _animateZoom(e) {
+    if (!this._tl) return;
+    const scale = this._map.getZoomScale(e.zoom, this._zoom);
+    const offset = this._map._latLngToNewLayerPoint(this._tl, e.zoom, e.center);
+    L.DomUtil.setTransform(this._canvas, offset, scale);
+  },
+  _update() {
+    this._raf = 0;
+    const map = this._map; if (!map) return;
+    const size = map.getSize(), dpr = window.devicePixelRatio || 1, c = this._canvas;
+    L.DomUtil.setPosition(c, map.containerPointToLayerPoint([0, 0]));
+    if (c.width !== Math.round(size.x * dpr) || c.height !== Math.round(size.y * dpr)) {
+      c.width = Math.round(size.x * dpr); c.height = Math.round(size.y * dpr);
+      c.style.width = size.x + 'px'; c.style.height = size.y + 'px';
+    }
+    this._tl = map.containerPointToLatLng([0, 0]); this._zoom = map.getZoom();
+    const ctx = this._ctx;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, size.x, size.y);
+    this._hits = [];
+    if (!this._idx || !map.hasLayer(this)) return;
+    const b = map.getBounds().pad(0.05);
+    const items = this._idx.getClusters([Math.max(-180, b.getWest()), Math.max(-85, b.getSouth()), Math.min(180, b.getEast()), Math.min(85, b.getNorth())], Math.round(this._zoom));
+    const singles = [], clusters = [];
+    for (const f of items) {
+      const p = map.latLngToContainerPoint([f.geometry.coordinates[1], f.geometry.coordinates[0]]);
+      if (f.properties.cluster) {
+        const n = f.properties.point_count, sz = n > 1000 ? 50 : n > 100 ? 40 : 32;
+        clusters.push({ x: p.x, y: p.y, r: sz / 2, n, sz, f, cl: true });
+      } else singles.push({ x: p.x, y: p.y, r: 6, f, cl: false });
+    }
+    ctx.fillStyle = 'rgba(163,59,46,0.92)'; ctx.strokeStyle = '#8b1a1a'; ctx.lineWidth = 1.5;
+    for (const h of singles) { ctx.beginPath(); ctx.arc(h.x, h.y, 6, 0, 6.2832); ctx.fill(); ctx.stroke(); }
+    ctx.globalAlpha = this._dim ? 0.15 : 1; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (const h of clusters) {
+      const t = Math.min(h.n / 500, 1);
+      ctx.fillStyle = `rgba(${Math.round(46 + 185 * t)},${Math.round(204 - 128 * t)},${Math.round(113 - 53 * t)},0.85)`;
+      ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(h.x, h.y, h.r - 1, 0, 6.2832); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#fff'; ctx.font = `700 ${Math.round(h.sz * 0.3)}px "IBM Plex Sans", system-ui, sans-serif`;
+      ctx.fillText(h.n > 999 ? (h.n / 1000).toFixed(1) + 'k' : String(h.n), h.x, h.y);
+    }
+    ctx.globalAlpha = 1;
+    this._hits = singles.concat(clusters);
+  },
+  _hit(pt) {
+    for (let i = this._hits.length - 1; i >= 0; i--) {
+      const h = this._hits[i], dx = pt.x - h.x, dy = pt.y - h.y, r = h.r + (h.cl ? 0 : 3);
+      if (dx * dx + dy * dy <= r * r) return h;
+    }
+    return null;
+  },
+  _onClick(e) {
+    if (isDrawMode || isEditingDrawnArea) return;
+    const h = this._hit(e.containerPoint); if (!h) return;
+    e._stopped = true;   // aşağıdaki "seçimi temizle" tıklamasını atlat
+    if (h.cl) {
+      const z = Math.min(this._idx.getClusterExpansionZoom(h.f.properties.cluster_id), this._map.getMaxZoom());
+      this._map.setView([h.f.geometry.coordinates[1], h.f.geometry.coordinates[0]], z);
+    } else {
+      const en = this._entries[h.f.properties.i];
+      onPointClick(en.props, en.latlng, !!(e.originalEvent && e.originalEvent.shiftKey));
+    }
+  },
+  _onMove(e) {
+    if (isDrawMode || isEditingDrawnArea) return;
+    const over = !!this._hit(e.containerPoint);
+    if (over !== this._hover) { this._hover = over; this._map.getContainer().style.cursor = over ? 'pointer' : ''; }
+  }
+});
+
 const layers = {
   basinGeneral: L.layerGroup().addTo(map),
   watershed: L.layerGroup().addTo(map),
   river:     L.layerGroup().addTo(map),
-  point: L.markerClusterGroup({
-    chunkedLoading: true,
-    chunkInterval: 100,
-    chunkDelay: 30,
-    animate: false,
-    animateAddingMarkers: false,
-    removeOutsideVisibleBounds: true,
-    maxClusterRadius: 60,
-    spiderfyOnMaxZoom: false,
-    showCoverageOnHover: false,
-    minimumClusterSize: 5,
-    disableClusteringAtZoom: 17,
-    iconCreateFunction: function(cluster) {
-      const c = cluster.getChildCount();
-      const t = Math.min(c / 500, 1);
-      const R = Math.round(46  + (231-46)  * t);
-      const G = Math.round(204 + (76-204)  * t);
-      const B = Math.round(113 + (60-113)  * t);
-      const size = c > 1000 ? 50 : c > 100 ? 40 : 32;
-      return L.divIcon({
-        html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:rgb(${R},${G},${B});opacity:0.85;display:flex;align-items:center;justify-content:center;font-size:${size*0.3}px;font-weight:700;color:white;font-family:var(--font-sans);border:2px solid rgba(255,255,255,0.6)">${c>999?(c/1000).toFixed(1)+'k':c}</div>`,
-        className: '',
-        iconSize: [size, size],
-        iconAnchor: [size/2, size/2]
-      });
-    }
-  }).addTo(map)
+  point: new PointLayer().addTo(map)
 };
 
 let highlightLayer = null;
@@ -1997,13 +2081,7 @@ function renderPoints(geojson) {
       const [lng, lat] = f.geometry.coordinates;
       if (!isValidLatLng(lat, lng)) { skippedInvalid++; return null; }
       const props = f.properties || {};
-      const marker = L.circleMarker([lat, lng], {
-        radius: 6, fillColor:'#a33b2e', fillOpacity:0.92,
-        color:'#8b1a1a', weight:1.5
-      });
-      marker.on('click', (e) => { L.DomEvent.stopPropagation(e); onPointClick(props, [lat, lng], e.originalEvent && e.originalEvent.shiftKey); });
-
-      const entry = { props, latlng: [lat, lng], marker };
+      const entry = { props, latlng: [lat, lng] };
       pointEntriesAll.push(entry);
       const polyOID = props['Poly_OID'];
       if (polyOID !== undefined && polyOID !== null) {
@@ -2017,7 +2095,7 @@ function renderPoints(geojson) {
       } else if (props['WID'] !== undefined && props['WID'] !== null) {
         pointIndexByWID[String(props['WID'])] = entry;
       }
-      return marker;
+      return entry;
     })
     .filter(m => m !== null);
   if (!markers.length && geojson.features.length) {
@@ -2025,16 +2103,14 @@ function renderPoints(geojson) {
     pointGeoJSON = null;
     throw new Error(`Hiçbir nokta çizilemedi (${skippedInvalid} geçersiz). İlk koordinat: ${JSON.stringify(c)} — enlem/boylam (EPSG:4326, [boylam, enlem]) bekleniyor.`);
   }
-  layers.point.addLayers(markers);
+  layers.point.setData(markers);
   if (skippedInvalid > 0) {
     console.warn(`${skippedInvalid} nokta geçersiz koordinat nedeniyle atlandı.`);
   }
 }
 
 function dimClusters(dim) {
-  const el = layers.point.getContainer ? layers.point.getContainer() : null;
-  const pane = map.getPane('markerPane');
-  if (pane) pane.style.opacity = dim ? '0.15' : '1';
+  layers.point.setDim(dim);
 }
 
 function setSelectedMarker(latlng) {
