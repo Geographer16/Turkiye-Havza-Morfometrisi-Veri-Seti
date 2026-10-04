@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Türkiye Akarsu Morfometrisi Veri Tabanı</title>
+<title>Türkiye Havza Morfometrisi Veri Tabanı</title>
 
 <link rel="icon" type="image/png" href="Data/HM_V2.png">
 <link rel="apple-touch-icon" href="Data/HM_V2.png">
@@ -13,14 +13,14 @@
 <link rel="canonical" href="https://geographer16.github.io/Turkiye-Havza-Morfometrisi-Veri-Seti/">
 
 <meta property="og:type" content="website">
-<meta property="og:title" content="Türkiye Akarsu Morfometrisi Veri Tabanı">
+<meta property="og:title" content="Türkiye Havza Morfometrisi Veri Tabanı">
 <meta property="og:description" content="Türkiye'deki akarsu havzalarına ait morfometrik parametrelerin interaktif harita üzerinden incelenebildiği, karşılaştırılabildiği ve indirilebildiği açık veri tabanı.">
 <meta property="og:image" content="https://geographer16.github.io/Turkiye-Havza-Morfometrisi-Veri-Seti/Data/HM_V2.png">
 <meta property="og:locale" content="tr_TR">
 <meta property="og:url" content="https://geographer16.github.io/Turkiye-Havza-Morfometrisi-Veri-Seti/">
 
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Türkiye Akarsu Morfometrisi Veri Tabanı">
+<meta name="twitter:title" content="Türkiye Havza Morfometrisi Veri Tabanı">
 <meta name="twitter:description" content="Türkiye'deki akarsu havzalarına ait morfometrik parametrelerin interaktif harita üzerinden incelenebildiği, karşılaştırılabildiği ve indirilebildiği açık veri tabanı.">
 <meta name="twitter:image" content="https://geographer16.github.io/Turkiye-Havza-Morfometrisi-Veri-Seti/Data/HM_V2.png">
 <meta http-equiv="Content-Security-Policy" content="
@@ -828,7 +828,7 @@
 <body>
 <div id="splash" role="status" aria-live="polite">
   <canvas id="sp-canvas" aria-hidden="true"></canvas>
-  <h1>Türkiye Akarsu Morfometrisi Veri Tabanı</h1>
+  <h1>Türkiye Havza Morfometrisi Veri Tabanı</h1>
   <div class="sp-bar"><i id="splash-bar"></i></div>
   <div class="sp-sub" id="splash-text">Başlatılıyor…</div>
 </div>
@@ -1028,7 +1028,7 @@ function spCore(cv,W,H,dpr,env,raf,still0){
       <img src="Data/HM_V2.png" alt="Hydro Machine Logo"
         style="width:72px;height:72px;object-fit:contain;flex-shrink:0;mix-blend-mode:screen;filter:contrast(1.25) brightness(0.9);margin-left:-4px;">
       <div>
-        <div class="header-title" ondblclick="window.open('https://doi.org/10.17211/tcd.1896223','_blank','noopener')">Türkiye Akarsu Morfometrisi Veri Tabanı</div>
+        <div class="header-title" ondblclick="window.open('https://doi.org/10.17211/tcd.1896223','_blank','noopener')">Türkiye Havza Morfometrisi Veri Tabanı</div>
       </div>
     </div>
     <nav>
@@ -1134,6 +1134,9 @@ function spCore(cv,W,H,dpr,env,raf,still0){
             <div class="mil-title">Lejant</div>
             <div class="mil-row"><div class="mil-poly"></div>Havza Sınırı</div>
             <div class="mil-row"><div class="mil-point"></div>Mansap Noktası</div>
+            <div class="mil-row"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="river-toggle" checked onchange="toggleRivers(this.checked)" style="margin:0;cursor:pointer;">Akarsular (Strahler)</label></div>
+            <div class="mil-row" style="gap:5px;font-size:10px;"><span>2</span><div style="width:70px;height:6px;border-radius:3px;background:linear-gradient(90deg,#8fc1e8,#2f86cc,#083170);"></div><span>9</span></div>
+            <div id="river-status" style="font-size:10px;color:var(--text3);"></div>
           </div>
         </div>
       </div>
@@ -1721,26 +1724,163 @@ function renderWatershed(data) {
   }).addTo(layers.watershed);
 }
 
-let riverLayer = null;
+/* ===== Akarsu ağı: parçalı (Data/River/index.json) + zoom/görünüm alanına göre kademeli yükleme ===== */
+const RIVER_DIR = 'Data/River/';
+const RIVER_COLORS = {2:'#8fc1e8',3:'#6aaee0',4:'#4a9bd8',5:'#2f86cc',6:'#1e6fb8',7:'#1558a0',8:'#0d4388',9:'#083170'};
+const RIVER_WEIGHTS = {2:0.6,3:0.8,4:1.1,5:1.5,6:1.9,7:2.4,8:3,9:3.6};
+const RIVER_MIN_ZOOM = {9:5,8:6,7:7,6:8,5:9,4:10,3:11,2:12};
+const RIVER_MAX_READY = 6;      // bellekte aynı anda tutulan en fazla parça
+const RIVER_MAX_PARALLEL = 2;   // aynı anda indirilen en fazla parça
+let _riverEnabled = false, _riverPass = 0, _riverTimer = null, _riverLoading = 0, _riverTick = 0;
+let _riverManifest = null, _riverManifestState = 'idle';
 
-function renderRiver(data) {
-  layers.river.clearLayers();
-  const geojson = (data.type === 'Topology') ? topoToGeoJSON(data) : data;
-  riverGeoJSON  = geojson;
-  riverLayer = L.geoJSON(geojson, {
-    style: () => ({ color:'#3f6b4a', weight:1.5, opacity:0.8 })
+map.createPane('riverPane');
+map.getPane('riverPane').style.zIndex = 350;
+map.getPane('riverPane').style.pointerEvents = 'none';
+const riverRenderer = L.canvas({ pane: 'riverPane', padding: 0.3 });
+
+function _riverStatus() {
+  const el = document.getElementById('river-status');
+  if (el) el.textContent = _riverLoading > 0 ? 'Akarsu verisi yükleniyor…' : '';
+}
+function _riverZoomOf(sh) { return RIVER_MIN_ZOOM[Math.max(2, Math.min(9, sh.maxCode))]; }
+
+function _riverBuildIndex(topo) {
+  const o = topo.objects[Object.keys(topo.objects)[0]];
+  const [sx, sy] = topo.transform.scale, [tx, ty] = topo.transform.translate;
+  const ab = topo.arcs.map(a => {
+    let x = 0, y = 0, x0 = 1e18, y0 = 1e18, x1 = -1e18, y1 = -1e18;
+    for (let i = 0; i < a.length; i++) {
+      x += a[i][0]; y += a[i][1];
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+    }
+    return [x0 * sx + tx, y0 * sy + ty, x1 * sx + tx, y1 * sy + ty];
   });
-  refreshRiver();
+  const n = o.geometries.length, bb = new Float64Array(4 * n), gc = new Uint8Array(n);
+  o.geometries.forEach((g, i) => {
+    let x0 = 1e18, y0 = 1e18, x1 = -1e18, y1 = -1e18;
+    (g.type === 'MultiLineString' ? g.arcs.flat() : g.arcs).forEach(k => {
+      const b = ab[k < 0 ? ~k : k];
+      if (b[0] < x0) x0 = b[0]; if (b[1] < y0) y0 = b[1]; if (b[2] > x1) x1 = b[2]; if (b[3] > y1) y1 = b[3];
+    });
+    bb.set([x0, y0, x1, y1], 4 * i);
+    gc[i] = Math.max(2, Math.min(9, Number(g.properties && g.properties.grid_code) || 2));
+  });
+  return { topo, geoms: o.geometries, bb, gc, n, added: new Map() };
 }
 
-function refreshRiver() {
-  const z = map.getZoom();
-  if (z >= 9) {
-    if (!layers.river.hasLayer(riverLayer)) layers.river.addLayer(riverLayer);
-  } else {
-    if (layers.river.hasLayer(riverLayer)) layers.river.removeLayer(riverLayer);
+async function _riverLoadManifest() {
+  _riverManifestState = 'loading';
+  try {
+    const r = await fetch(RIVER_DIR + 'index.json');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const m = await r.json();
+    _riverManifest = (m.shards || []).map(sh => Object.assign({ state: 'idle', data: null, used: 0 }, sh));
+    _riverManifestState = 'ready';
+  } catch (e) {
+    _riverManifestState = 'error';
+    console.warn('[river] index.json okunamadı:', e.message);
   }
+  refreshRivers();
 }
+
+async function _riverLoadShard(sh) {
+  sh.state = 'loading'; _riverLoading++; _riverStatus();
+  try {
+    const r = await fetch(RIVER_DIR + sh.file);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    sh.data = _riverBuildIndex(await r.json());
+    sh.state = 'ready';
+  } catch (e) {
+    sh.state = 'error';
+    console.warn('[river]', sh.file, 'yüklenemedi:', e.message);
+  }
+  _riverLoading--; _riverStatus();
+  refreshRivers();
+}
+
+function _riverEvict(keep) {
+  const ready = _riverManifest.filter(s => s.state === 'ready');
+  if (ready.length <= RIVER_MAX_READY) return;
+  ready.filter(s => !keep.has(s)).sort((a, b) => a.used - b.used).slice(0, ready.length - RIVER_MAX_READY).forEach(sh => {
+    for (const l of sh.data.added.values()) layers.river.removeLayer(l);
+    sh.data = null; sh.state = 'idle';
+  });
+}
+
+function _riverViewBox(cv) {
+  const b = map.getBounds().pad(0.15), sw = b.getSouthWest(), ne = b.getNorthEast();
+  let x0 = 1e18, y0 = 1e18, x1 = -1e18, y1 = -1e18;
+  for (let i = 0; i <= 4; i++) for (let j = 0; j <= 4; j++) {
+    const q = cv.inverse([sw.lng + (ne.lng - sw.lng) * i / 4, sw.lat + (ne.lat - sw.lat) * j / 4]);
+    if (q[0] < x0) x0 = q[0]; if (q[0] > x1) x1 = q[0]; if (q[1] < y0) y0 = q[1]; if (q[1] > y1) y1 = q[1];
+  }
+  return [x0, y0, x1, y1];
+}
+
+function _riverMakeLayer(d, i, cv) {
+  const g = topojson.feature(d.topo, d.geoms[i]).geometry;
+  if (!g || !g.coordinates) return null;
+  const lines = g.type === 'MultiLineString' ? g.coordinates : [g.coordinates];
+  const ll = lines.map(l => l.map(c => { const q = cv.forward([c[0], c[1]]); return [q[1], q[0]]; }));
+  const c = d.gc[i];
+  return L.polyline(ll, { renderer: riverRenderer, interactive: false, color: RIVER_COLORS[c], weight: RIVER_WEIGHTS[c], opacity: 0.9, smoothFactor: 1.5, lineCap: 'round', lineJoin: 'round' });
+}
+
+function refreshRivers() {
+  if (!_riverEnabled || !map.hasLayer(layers.river)) return;
+  const z = map.getZoom();
+  if (_riverManifestState === 'idle') { if (z >= 5) _riverLoadManifest(); return; }
+  if (_riverManifestState !== 'ready') return;
+  const pass = ++_riverPass, cv = _resolveDataCrs({}, []);
+  const [vx0, vy0, vx1, vy1] = _riverViewBox(cv);
+  const hit = sh => sh.bbox[0] <= vx1 && sh.bbox[2] >= vx0 && sh.bbox[1] <= vy1 && sh.bbox[3] >= vy0;
+  const keep = new Set(), todo = [];
+  _riverManifest.forEach(sh => {
+    const want = z >= _riverZoomOf(sh) && hit(sh);
+    if (want) {
+      keep.add(sh);
+      if (sh.state === 'idle' && _riverLoading < RIVER_MAX_PARALLEL) _riverLoadShard(sh);
+    }
+    if (sh.state !== 'ready') return;
+    const d = sh.data;
+    if (!want) {                      // görünmeyen/zoom dışı parçanın çizgilerini kaldır
+      for (const l of d.added.values()) layers.river.removeLayer(l);
+      d.added.clear();
+      return;
+    }
+    sh.used = ++_riverTick;
+    const vis = new Set();
+    for (let i = 0; i < d.n; i++) {
+      if (z < RIVER_MIN_ZOOM[d.gc[i]]) continue;
+      const k = 4 * i;
+      if (d.bb[k] > vx1 || d.bb[k + 2] < vx0 || d.bb[k + 1] > vy1 || d.bb[k + 3] < vy0) continue;
+      vis.add(i);
+    }
+    for (const [i, lyr] of d.added) if (!vis.has(i)) { layers.river.removeLayer(lyr); d.added.delete(i); }
+    vis.forEach(i => { if (!d.added.has(i)) todo.push([d, i]); });
+  });
+  _riverEvict(keep);
+  todo.sort((a, b) => a[0].gc[a[1]] - b[0].gc[b[1]]);
+  let pos = 0;
+  (function step() {
+    if (pass !== _riverPass) return;
+    const end = Math.min(pos + 250, todo.length);
+    for (; pos < end; pos++) {
+      const [d, i] = todo[pos];
+      if (!d.geoms || d.added.has(i)) continue;
+      try { const l = _riverMakeLayer(d, i, cv); if (l) { layers.river.addLayer(l); d.added.set(i, l); } } catch (e) {}
+    }
+    if (pos < todo.length) requestAnimationFrame(step);
+  })();
+}
+
+function toggleRivers(on) {
+  toggleLayer('river', on);
+  if (on) refreshRivers();
+}
+
+map.on('moveend', () => { clearTimeout(_riverTimer); _riverTimer = setTimeout(refreshRivers, 150); });
 
 function isValidLatLng(lat, lng) {
   return Number.isFinite(lat) && Number.isFinite(lng) &&
@@ -3762,7 +3902,15 @@ function dominantClass(row, origin) {
   if (best === null) return '';
   return (origin === 'koppen' && koppenDescByCode[best]) ? `${best} · ${koppenDescByCode[best]}` : best;
 }
+const DSI_FIELDS = new Set(['Havza_Ad', 'Ana_havza']);
+const OUT_OF_BASIN_LABEL = 'Sınır Dışı';
+function isBlankCat(v) {
+  if (v === undefined || v === null) return true;
+  const t = String(v).trim().toLowerCase();
+  return t === '' || t === 'na' || t === 'nan' || t === 'null' || t === 'none' || t === '-';
+}
 function chartCatValue(row, field) {
+  if (DSI_FIELDS.has(field) && isBlankCat(row[field])) return OUT_OF_BASIN_LABEL;
   return DERIVED_FIELDS[field] ? dominantClass(row, DERIVED_FIELDS[field].origin) : row[field];
 }
 const TABLE_HIDDEN_COLS = new Set(['OBJECTID','OBJECTID_1','FID','Shape_Leng','Shape_Length','Shape_Area','SHAPE_LENG','SHAPE_LENGTH','SHAPE_AREA']);
@@ -4498,17 +4646,21 @@ function updateScatterChart() {
     const groups = {};
     const groupRows = {};
     pts.forEach(row => {
-      const cat = String(row[cF]||'?');
+      const cv = chartCatValue(row, cF);
+      const cat = isBlankCat(cv) ? '?' : String(cv);
       if (!groups[cat]) { groups[cat] = []; groupRows[cat] = []; }
       groups[cat].push({x:row[xF], y:row[yF]});
       groupRows[cat].push(row);
     });
-    datasets = Object.entries(groups).slice(0,8).map(([cat,data],i) => ({
+    const mk = ([cat,data], color) => ({
       label: cat, data,
       _rows: groupRows[cat],
-      backgroundColor: catColors[i%catColors.length] + '99',
+      backgroundColor: color + '99',
       pointRadius:3, pointHoverRadius:6
-    }));
+    });
+    datasets = Object.entries(groups).filter(([c]) => c !== OUT_OF_BASIN_LABEL).slice(0,8)
+      .map((e,i) => mk(e, catColors[i%catColors.length]));
+    if (groups[OUT_OF_BASIN_LABEL]) datasets.push(mk([OUT_OF_BASIN_LABEL, groups[OUT_OF_BASIN_LABEL]], '#8a8a8a'));
   } else {
     datasets = [{ label: `${xF} vs ${yF}`, data: pts.map(r=>({x:r[xF],y:r[yF]})),
       _rows: pts,
@@ -5398,7 +5550,6 @@ function fitMap() {
   try {
     const allL = [
       ...layers.watershed.getLayers(),
-      ...layers.river.getLayers(),
       ...layers.point.getLayers()
     ];
     if (allL.length) {
@@ -5540,7 +5691,7 @@ document.addEventListener('click', (e) => {
   }
 });
 
-autoLoad().then(loadSelectionFromURL).catch(e => console.error('[autoLoad]', e)).finally(hideSplash);
+autoLoad().then(loadSelectionFromURL).catch(e => console.error('[autoLoad]', e)).finally(() => { hideSplash(); _riverEnabled = true; refreshRivers(); });
 
 const TECH_META = {
   title: 'Türkiye Havza Morfometrisi Veri Seti',
