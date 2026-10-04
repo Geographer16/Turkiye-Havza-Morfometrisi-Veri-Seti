@@ -530,8 +530,17 @@
   .table-footer {
     padding: 9px 15px; font-size: 12px; color: var(--text2);
     border-top: 1px solid var(--border); font-family:var(--font-sans);
-    display: flex; justify-content: space-between; align-items: center;
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px 14px;
   }
+  .tbl-pager { display: flex; align-items: center; gap: 6px; }
+  .tbl-pager button {
+    padding: 4px 10px; font-size: 12px; font-family: var(--font-sans);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--surface); color: var(--text); cursor: pointer;
+  }
+  .tbl-pager button:hover:not(:disabled) { background: var(--accent-light); color: var(--accent); }
+  .tbl-pager button:disabled { opacity: 0.4; cursor: default; }
+  .tbl-pager .tbl-page-info { min-width: 84px; text-align: center; color: var(--text2); }
 
   .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 18px; }
   .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
@@ -1171,7 +1180,14 @@ function spCore(cv,W,H,dpr,env,raf,still0){
       </table>
       <div class="table-footer">
         <span id="tbl-count">CSV yüklenmedi</span>
-        <span style="color:var(--text3)">Başlığa tıklayarak sıralayın</span>
+        <span class="tbl-pager" id="tbl-pager">
+          <button type="button" id="tbl-first" onclick="tblGoPage('first')" title="İlk sayfa">«</button>
+          <button type="button" id="tbl-prev" onclick="tblGoPage('prev')" title="Önceki sayfa">‹ Önceki</button>
+          <span class="tbl-page-info" id="tbl-page-info">1 / 1</span>
+          <button type="button" id="tbl-next" onclick="tblGoPage('next')" title="Sonraki sayfa">Sonraki ›</button>
+          <button type="button" id="tbl-last" onclick="tblGoPage('last')" title="Son sayfa">»</button>
+        </span>
+        <span style="color:var(--text3)">Başlığa çift tıklayarak sıralayın</span>
       </div>
     </div>
    </div>
@@ -4038,6 +4054,19 @@ function _dblClickAutoFit(evt, col) {
   if (typeof window._autoFitTableColumn === 'function') window._autoFitTableColumn(col);
 }
 
+const TABLE_PAGE_SIZE = 15;
+let tablePage = 0;
+function tblGoPage(where) {
+  const total = Math.max(1, Math.ceil(filteredData.length / TABLE_PAGE_SIZE));
+  if (where === 'first') tablePage = 0;
+  else if (where === 'prev') tablePage = Math.max(0, tablePage - 1);
+  else if (where === 'next') tablePage = Math.min(total - 1, tablePage + 1);
+  else if (where === 'last') tablePage = total - 1;
+  renderTable(filteredData);
+  const sc = document.getElementById('tbl-scroll-bot');
+  if (sc) sc.scrollTop = 0;
+}
+
 function renderTable(data) {
   const head = document.getElementById('tbl-head');
   const body = document.getElementById('tbl-body');
@@ -4134,7 +4163,13 @@ function renderTable(data) {
     return v;
   }
 
-  body.innerHTML = data.slice(0, 500).map(row => {
+  const totalPages = Math.max(1, Math.ceil(data.length / TABLE_PAGE_SIZE));
+  if (tablePage > totalPages - 1) tablePage = totalPages - 1;
+  if (tablePage < 0) tablePage = 0;
+  const pageStart = tablePage * TABLE_PAGE_SIZE;
+  const pageEnd = Math.min(pageStart + TABLE_PAGE_SIZE, data.length);
+
+  body.innerHTML = data.slice(pageStart, pageEnd).map(row => {
     const widRaw = escapeJsAttr(row['WID'] ?? '');
     const hasWid = row['WID'] !== undefined && row['WID'] !== null && row['WID'] !== '';
     const gotoCell = hasWid
@@ -4148,8 +4183,13 @@ function renderTable(data) {
     return `<tr>${gotoCell}${cells}</tr>`;
   }).join('');
 
-  document.getElementById('tbl-count').textContent =
-    `${data.length} havza gösteriliyor${data.length > 500 ? ' (ilk 500)' : ''}`;
+  document.getElementById('tbl-count').textContent = data.length
+    ? `${data.length} havzadan ${pageStart + 1}–${pageEnd} arası gösteriliyor`
+    : '0 havza';
+  document.getElementById('tbl-page-info').textContent = `${tablePage + 1} / ${totalPages}`;
+  document.getElementById('tbl-first').disabled = document.getElementById('tbl-prev').disabled = tablePage <= 0;
+  document.getElementById('tbl-next').disabled = document.getElementById('tbl-last').disabled = tablePage >= totalPages - 1;
+  document.getElementById('tbl-pager').style.display = totalPages > 1 ? '' : 'none';
 
   requestAnimationFrame(() => {
     const bot = document.getElementById('tbl-scroll-bot');
@@ -4171,11 +4211,13 @@ function _filterTableNow() {
     if (k === undefined) { k = Object.values(row).join('\u0001').toLowerCase(); Object.defineProperty(row, '__s', { value: k }); }
     return k.includes(q);
   });
+  tablePage = 0;
   renderTable(filteredData);
   updateExportBtn();
 }
 
 function sortTable(col) {
+  tablePage = 0;
   if (sortCol === col) sortDir *= -1;
   else { sortCol = col; sortDir = 1; }
   filteredData.sort((a, b) => {
