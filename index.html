@@ -1016,11 +1016,6 @@ function spCore(cv,W,H,dpr,env,raf,still0){
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/proj4@2.11.0/dist/proj4.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/leaflet-image@0.4.0/leaflet-image.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/shpjs@6.1.0/dist/shp.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mapbox/shp-write@0.4.3/shpwrite.js"></script>
 
 <header>
   <div class="header-inner" style="padding-left:0;">
@@ -1729,7 +1724,9 @@ const RIVER_DIR = 'Data/River/';
 const RIVER_COLORS = {2:'#8fc1e8',3:'#6aaee0',4:'#4a9bd8',5:'#2f86cc',6:'#1e6fb8',7:'#1558a0',8:'#0d4388',9:'#083170'};
 const RIVER_WEIGHTS = {2:0.6,3:0.8,4:1.1,5:1.5,6:1.9,7:2.4,8:3,9:3.6};
 const RIVER_MIN_ZOOM = {9:5,8:6,7:7,6:8,5:9,4:10,3:11,2:12};
-const RIVER_MAX_READY = 6;      // bellekte aynı anda tutulan en fazla parça
+const _lowEnd = (navigator.deviceMemory && navigator.deviceMemory <= 4) || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) || matchMedia('(pointer:coarse)').matches;
+const RIVER_MAX_READY = _lowEnd ? 2 : 3;   // bellekte aynı anda tutulan en fazla parça
+if (_lowEnd) RIVER_MIN_ZOOM[2] = 13;       // en yoğun (order-2) akarsular düşük donanımda yalnızca çok yakın zoomda
 const RIVER_MAX_PARALLEL = 2;   // aynı anda indirilen en fazla parça
 let _riverEnabled = false, _riverPass = 0, _riverTimer = null, _riverLoading = 0, _riverTick = 0;
 let _riverManifest = null, _riverManifestState = 'idle';
@@ -4088,9 +4085,11 @@ function filterTable() {
 
 function _filterTableNow() {
   const q = document.getElementById('tbl-search').value.toLowerCase().trim();
-  filteredData = !q ? csvData : csvData.filter(row =>
-    Object.values(row).some(v => String(v).toLowerCase().includes(q))
-  );
+  filteredData = !q ? csvData : csvData.filter(row => {
+    let k = row.__s;
+    if (k === undefined) { k = Object.values(row).join('\u0001').toLowerCase(); Object.defineProperty(row, '__s', { value: k }); }
+    return k.includes(q);
+  });
   renderTable(filteredData);
   updateExportBtn();
 }
@@ -5560,14 +5559,115 @@ function fitMap() {
   } catch(e) {}
 }
 
-async function loadCSVSourcesFromServer() {
-  const results = await Promise.all(CSV_SOURCES.map(async def => {
+function _fetchCSVTexts() {
+  return Promise.all(CSV_SOURCES.map(async def => {
     try {
       const r = await fetch(def.url);
       if (!r.ok) return { def, status: r.status };
       return { def, text: await r.text() };
     } catch (e) { return { def, error: e }; }
   }));
+}
+
+const _CSV_WORKER_SRC = '(' + function () {
+  function split(line) {
+    const out = []; let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') { inQ = !inQ; continue; }
+      if (c === ',' && !inQ) { out.push(cur.trim()); cur = ''; continue; }
+      cur += c;
+    }
+    out.push(cur.trim()); return out;
+  }
+  function parse(text, map) {
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) return { headers: [], rows: [] };
+    const headers = split(lines[0].replace(/^\uFEFF/, '')).map(h => map[h] || h);
+    const rows = [];
+    for (let i = 1; i < lines.length; i++) {
+      const vals = split(lines[i]), row = {};
+      for (let j = 0; j < headers.length; j++) {
+        const v = vals[j] !== undefined ? vals[j] : '', n = parseFloat(v);
+        row[headers[j]] = (v !== '' && !isNaN(n) && isFinite(n)) ? n : v;
+      }
+      rows.push(row);
+    }
+    return { headers, rows };
+  }
+  self.onmessage = function (e) {
+    const keyNames = e.data.keyNames;
+    const P = e.data.sources.map(s => Object.assign({ key: s.key, label: s.label }, parse(s.text, s.map)));
+    P.forEach(p => { p.keyCol = p.headers.find(h => keyNames.includes(h)) || null; });
+    const base = P[0], headers = base.headers.slice(), origin = {}, warnings = [], byKey = {};
+    base.headers.forEach(h => { origin[h] = base.key; });
+    const merged = base.rows;   // kopyalamadan, yerinde birleştir
+    if (base.keyCol) merged.forEach(r => { byKey[String(r[base.keyCol])] = r; });
+    P.slice(1).forEach(src => {
+      const add = src.headers.filter(h => h !== src.keyCol), rename = {};
+      add.forEach(h => {
+        if (headers.includes(h)) {
+          let nn = h + '_' + src.key, i = 2;
+          while (headers.includes(nn)) nn = h + '_' + src.key + (i++);
+          rename[h] = nn;
+          warnings.push('"' + src.label + '" içindeki "' + h + '" sütunu mevcut bir sütunla çakıştı, "' + nn + '" adıyla eklendi.');
+        }
+      });
+      add.forEach(h => { const nn = rename[h] || h; headers.push(nn); origin[nn] = src.key; });
+      if (src.keyCol && base.keyCol) {
+        let matched = 0;
+        src.rows.forEach(r => {
+          const t = byKey[String(r[src.keyCol])]; if (!t) return;
+          matched++; add.forEach(h => { t[rename[h] || h] = r[h]; });
+        });
+        if (merged.length - matched > 0) warnings.push('"' + src.label + '": ana tablodaki ' + (merged.length - matched) + ' havza için eşleşen satır bulunamadı (boş bırakıldı).');
+        if (src.rows.length - matched > 0) warnings.push('"' + src.label + '": ' + (src.rows.length - matched) + ' satır ana tabloda karşılığı olmadığı için atlandı.');
+      } else if (src.rows.length === merged.length) {
+        merged.forEach((t, i) => add.forEach(h => { t[rename[h] || h] = src.rows[i][h]; }));
+      } else warnings.push('"' + src.label + '": anahtar sütun yok, kaynak birleştirilemedi.');
+    });
+    for (let i = 0; i < merged.length; i += 10000) self.postMessage({ type: 'chunk', rows: merged.slice(i, i + 10000) });
+    self.postMessage({ type: 'done', headers, origin, warnings });
+  };
+} + ')()';
+
+function _csvViaWorker(sources) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(new Blob([_CSV_WORKER_SRC], { type: 'text/javascript' }));
+    const w = new Worker(url), parts = [];
+    w.onmessage = e => {
+      const d = e.data;
+      if (d.type === 'chunk') parts.push(d.rows);
+      else { w.terminate(); URL.revokeObjectURL(url); resolve({ rows: parts.flat(), headers: d.headers, origin: d.origin, warnings: d.warnings }); }
+    };
+    w.onerror = e => { w.terminate(); reject(new Error(e.message || 'worker hatası')); };
+    w.postMessage({ sources, keyNames: CSV_KEY_NAMES });
+  });
+}
+
+async function loadCSVSourcesFromServer(prefetched) {
+  const results = prefetched || await _fetchCSVTexts();
+  const okRes = results.filter(r => r.text !== undefined);
+  const primary = okRes.find(r => r.def.primary);
+  if (!primary || typeof Worker === 'undefined') return _loadCSVSourcesMainThread(results);
+  try {
+    const sources = [primary, ...okRes.filter(r => r !== primary)].map(r => {
+      const nl = r.text.indexOf('\n');
+      const hdr = splitCSVRow((nl < 0 ? r.text : r.text.slice(0, nl)).replace(/\r$/, '').replace(/^\uFEFF/, ''));
+      return { key: r.def.key, label: r.def.label, text: r.text, map: remapKoppenHeaders(hdr) };
+    });
+    const out = await _csvViaWorker(sources);
+    columnOrigin = out.origin;
+    applyMergedTable(out.rows, out.headers);
+    showMergeReport(out.warnings, results.filter(r => r.text === undefined).map(r => r.def.label));
+  } catch (e) {
+    console.warn('[CSV worker] ana thread yoluna dönüldü:', e);
+    return _loadCSVSourcesMainThread(results);
+  }
+}
+
+async function _loadCSVSourcesMainThread(results) {
+  results = results || await _fetchCSVTexts();
 
   const loaded = [], missing = [];
   for (const res of results) {
@@ -5618,7 +5718,25 @@ function hideSplash() {
 }
 setTimeout(hideSplash, 30000);
 
+const _scriptP = {};
+function _loadScript(src) {
+  return _scriptP[src] || (_scriptP[src] = new Promise((res, rej) => {
+    const s = document.createElement('script'); s.src = src; s.onload = res;
+    s.onerror = () => { delete _scriptP[src]; rej(new Error('yüklenemedi: ' + src)); };
+    document.head.appendChild(s);
+  }));
+}
+function _loadExportLibs() {
+  const go = () => ['xlsx@0.18.5/dist/xlsx.full.min.js', 'html2canvas@1.4.1/dist/html2canvas.min.js', 'leaflet-image@0.4.0/leaflet-image.js', '@mapbox/shp-write@0.4.3/shpwrite.js']
+    .forEach(p => _loadScript('https://cdn.jsdelivr.net/npm/' + p).catch(e => console.warn(e.message)));
+  window.requestIdleCallback ? requestIdleCallback(go, { timeout: 5000 }) : setTimeout(go, 1500);
+}
+
 async function autoLoad() {
+  // Tüm ağ istekleri aynı anda başlar; işleme sırası değişmez
+  const _pointP = fetch('Data/point.json').then(r => r.ok ? r : fetch('Data/point.geojson'));
+  const _csvP = _fetchCSVTexts();
+  const _shpP = fetch('Data/Basin_General.shp').catch(() => null);
   const defs = [
     {
       key: 'point', url: 'Data/point.geojson', alt: 'Data/point.json',
@@ -5634,8 +5752,7 @@ async function autoLoad() {
   setSplash(10, 'Havza çıkış noktaları yükleniyor…');
   for (const def of defs) {
     try {
-      let resp = await fetch(def.url);
-      if (!resp.ok && def.alt) resp = await fetch(def.alt);
+      let resp = await _pointP;
       if (!resp.ok) throw new Error('bulunamadi');
       await def.handler(resp);
     } catch (e) {
@@ -5646,19 +5763,15 @@ async function autoLoad() {
   }
 
   setSplash(55, 'Morfometri verileri okunuyor…');
-  await loadCSVSourcesFromServer();
+  await loadCSVSourcesFromServer(await _csvP);
   setSplash(80, 'Genel havza şeması hazırlanıyor…');
 
   try {
-    if (typeof shp !== 'function') {
-      console.error('[basinGeneral] shpjs kütüphanesi yüklenemedi (CDN erişimi engellenmiş olabilir).');
-    } else {
-      const [shpResp, dbfResp, prjResp] = await Promise.all([
-        fetch('Data/Basin_General.shp'),
-        fetch('Data/Basin_General.dbf'),
-        fetch('Data/Basin_General.prj')
-      ]);
-      if (!shpResp.ok) throw new Error('Data/Basin_General.shp bulunamadı (HTTP ' + shpResp.status + ')');
+    {
+      const shpResp = await _shpP;
+      if (!shpResp || !shpResp.ok) throw new Error('Data/Basin_General.shp bulunamadı (HTTP ' + (shpResp ? shpResp.status : 'ağ') + ')');
+      const [dbfResp, prjResp] = await Promise.all([fetch('Data/Basin_General.dbf'), fetch('Data/Basin_General.prj')]);
+      await _loadScript('https://cdn.jsdelivr.net/npm/shpjs@6.1.0/dist/shp.min.js');
 
       const shpBuf = await shpResp.arrayBuffer();
       const dbfBuf = dbfResp.ok ? await dbfResp.arrayBuffer() : undefined;
@@ -5691,7 +5804,7 @@ document.addEventListener('click', (e) => {
   }
 });
 
-autoLoad().then(loadSelectionFromURL).catch(e => console.error('[autoLoad]', e)).finally(() => { hideSplash(); _riverEnabled = true; refreshRivers(); });
+autoLoad().then(loadSelectionFromURL).catch(e => console.error('[autoLoad]', e)).finally(() => { hideSplash(); _riverEnabled = true; refreshRivers(); _loadExportLibs(); });
 
 const TECH_META = {
   title: 'Türkiye Havza Morfometrisi Veri Seti',
