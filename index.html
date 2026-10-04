@@ -2208,7 +2208,7 @@ async function onPointClick(props, latlng, shiftKey) {
     { const i0 = csvHeaders.indexOf('Bh'), i1 = csvHeaders.indexOf('Tc_Kirpich');
       if (i0 >= 0 && i1 >= i0) csvHeaders.slice(i0, i1 + 1).forEach(h => morphSet.add(h)); }
     const _afterBh = new Set(csvHeaders.indexOf('Bh') >= 0 ? csvHeaders.slice(csvHeaders.indexOf('Bh')) : []);
-    const _notMorph = new Set(['TPI_Major','Taban','Havza_Ad','Ana_havza','Strahler_O','area_km2','Jeo_Era','Jeo_Desc']);
+    const _notMorph = new Set(['TPI_Major','Taban','Havza_Ad','Ana_havza','Strahler_O','area_km2','Jeo_Era','Jeo_Desc','CN']);
     const isMorph = (key, val) => morphSet.has(key) || (_afterBh.has(key) && typeof val === 'number' && !_notMorph.has(key));
 
     const fieldLabelMap = {
@@ -2221,6 +2221,7 @@ async function onPointClick(props, latlng, shiftKey) {
       'Jeo_Era':     'Jeolojik D\u00F6nem',
       'Jeo_Desc':    'Litoloji',
       'TPI_Major':   'TPI',
+      'CN':          'E\u011fri Numaras\u0131 (CN)',
     };
 
     const tpiClassMap = {
@@ -3859,7 +3860,8 @@ function splitCSVRow(line) {
 const CSV_SOURCES = [
   { key: 'morphometry', label: 'Morfometri',    url: 'Data/Morphometry.csv',   primary: true },
   { key: 'koppen',      label: 'Köppen-Geiger', url: 'Data/Koppen-Geiger.csv' },
-  { key: 'landcover',   label: 'Arazi Örtüsü',  url: 'Data/Landcover.csv' }
+  { key: 'landcover',   label: 'Arazi Örtüsü',  url: 'Data/Landcover.csv' },
+  { key: 'cn',          label: 'Eğri Numarası (CN)', url: 'Data/CN_data.csv' }
 ];
 const CSV_KEY_NAMES = ['OBJECTID', 'FID', 'OBJECTID_1'];
 
@@ -3976,7 +3978,8 @@ const COL_LABELS = {
   'DSI_KOD':    'DS\u0130 Kodu',
   'GTS_KOD':    'GTS Kodu',
   'STRAHLER_O': 'Strahler',
-  'AREA_KM2':   'Alan (km\u00b2)'
+  'AREA_KM2':   'Alan (km\u00b2)',
+  'CN':         'E\u011fri Numaras\u0131 (CN)'
 };
 const _COL_LABELS_UP = {};
 Object.keys(COL_LABELS).forEach(k => { _COL_LABELS_UP[k.toUpperCase()] = COL_LABELS[k]; });
@@ -4576,9 +4579,11 @@ function buildCharts() {
   const derivedCat = [];
   if (koppenCols.length) derivedCat.push('__dom_koppen');
   if (landCols.length)   derivedCat.push('__dom_landcover');
+  const hydroFields = numFields.filter(h => columnOrigin[h] === 'cn');
   const optHtml = (f, sel) => `<option value="${escapeHtml(f)}"${sel ? ' selected' : ''}>${escapeHtml(fieldLabel(f))}</option>`;
   const groupedOpts = (morph, pickSelected) => {
-    const groups = [['Morfometri', morph]].filter(g => g[1].length);
+    const groups = [['Morfometri', morph.filter(f => !hydroFields.includes(f))],
+                    ['Hidroloji',  morph.filter(f =>  hydroFields.includes(f))]].filter(g => g[1].length);
     let idx = 0;
     const body = g => g[1].map(f => optHtml(f, pickSelected && pickSelected(idx++))).join('');
     return groups.length > 1 ? groups.map(g => `<optgroup label="${g[0]}">${body(g)}</optgroup>`).join('') : groups.map(body).join('');
@@ -4592,7 +4597,7 @@ function buildCharts() {
     if (inRange) { if (h === morphEnd) { inRange = false; return true; } return true; }
     return false;
   });
-  const chartFields = morphFields.length ? morphFields
+  const chartFields = morphFields.length ? [...morphFields, ...hydroFields]
     : numFields.filter(h => columnOrigin[h] !== 'koppen' && columnOrigin[h] !== 'landcover');
 
   _setupChartPaletteSelectors();
@@ -5032,7 +5037,7 @@ function onBoxPaletteChange(key) {
   updateBoxPlot();
 }
 
-const CORR_PARAMS  = ['Bh','Hi','T','Dd','Rn','Lo','Fs','Kc','MRn','Di','Rho','If','Rl','Rb','Tc_Kirpich'];
+const CORR_PARAMS  = ['Bh','Hi','T','Dd','Rn','Lo','Fs','Kc','MRn','Di','Rho','If','Rl','Rb','Tc_Kirpich','CN'];
 function _normKey(s) {
   return String(s).replace(/[İIı]/g, 'i').toLowerCase().replace(/\u0307/g, '').trim();
 }
