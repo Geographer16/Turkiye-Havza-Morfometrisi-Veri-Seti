@@ -1766,6 +1766,7 @@ const layers = {
 };
 
 let highlightLayer = null;
+let _selToken = 0; // her yeni seçim/temizleme işleminde artar; geç dönen polygon yanıtlarını iptal eder
 let selectedMarker = null;
 let selectedMarkerCoords = null;
 
@@ -2157,6 +2158,7 @@ function setSelectedMarker(latlng) {
 }
 
 function clearSelection() {
+  _selToken++;
   if (selectedMarker) { map.removeLayer(selectedMarker); selectedMarker = null; }
   selectedMarkerCoords = null;
   if (highlightLayer) { map.removeLayer(highlightLayer); highlightLayer = null; }
@@ -2170,6 +2172,7 @@ async function onPointClick(props, latlng, shiftKey) {
     return;
   }
 
+  const myToken = ++_selToken;
   clearMultiSelectionMarkers();
   selectedPoints = [];
 
@@ -2295,10 +2298,12 @@ async function onPointClick(props, latlng, shiftKey) {
     try {
       feat = await fetchPolygonFeature(polyOID);
     } catch(e) {}
+    if (myToken !== _selToken) return; // bu arada başka seçim yapıldı ya da seçim temizlendi
     if (!feat) throw new Error('Polygon bulunamadi');
     const loadingEl = document.getElementById('poly-loading');
     if (loadingEl) loadingEl.remove();
     const hColor = highlightColor;
+    if (highlightLayer) { map.removeLayer(highlightLayer); highlightLayer = null; }
     highlightLayer = L.geoJSON(feat, {
       style: () => ({ fillColor: hColor, fillOpacity:0.38, color: hColor, weight:2.5 })
     }).addTo(map);
@@ -2818,6 +2823,7 @@ function clearMultiSelectionMarkers() {
 }
 
 function clearMultiSelection() {
+  _selToken++;
   clearMultiSelectionMarkers();
   selectedPoints = [];
   singleSelection = null;
@@ -2881,7 +2887,7 @@ async function addToMultiSelection(props, latlng) {
   if (polyOID !== undefined && polyOID !== null) {
     try {
       const feat = await fetchPolygonFeature(polyOID);
-      if (feat) {
+      if (feat && selectedPoints.includes(entry)) { // beklerken temizlendiyse çizme
         entry.polyFeature = feat;
         entry.highlightLayer = L.geoJSON(feat, {
           style: () => ({ fillColor: color, fillOpacity: 0.25, color: color, weight: 2 })
