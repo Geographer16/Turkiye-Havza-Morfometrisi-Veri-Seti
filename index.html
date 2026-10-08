@@ -5592,9 +5592,9 @@ function downloadDivAsImage(divId, filename) {
   });
 }
 
-/* leaflet-image, zoomSnap:0.5 (kesirli zoom) ile altlık karoları yanlış ölçekte/yerde çiziyordu
-   (harita İzlanda'ya kayıyordu). Altlığı kendimiz doğru zoom ölçeğiyle çiziyoruz. */
-function _loadTileImg(url) {
+/* PNG dışa aktarma: leaflet-image yerine, ekranda görünen haritayı (karolar + canvas/svg katmanları)
+   DOM'daki gerçek konumlarıyla birebir çizer. Böylece altlık ve havzalar her zaman hizalı olur. */
+function _loadCorsImg(url) {
   return new Promise(res => {
     const im = new Image();
     im.crossOrigin = 'anonymous';
@@ -5603,84 +5603,114 @@ function _loadTileImg(url) {
     im.src = url;
   });
 }
+function _corsUrl(u) {
+  if (/^data:/.test(u)) return u;
+  return u + (u.indexOf('?') < 0 ? '?' : '&') + 'cors=1';   // önbellekteki CORS'suz kopyayı kullanma
+}
 
-async function _drawBasemapTiles(ctx, scale) {
-  const zoom = map.getZoom();
-  const pb = map.getPixelBounds();
-  const jobs = [];
-  map.eachLayer(layer => {
-    if (!(layer instanceof L.TileLayer) || layer._tileZoom == null) return;
-    const tz = layer._tileZoom;                    // karoların gerçek (tam sayı) zoom'u
-    const ts = layer.getTileSize().x;
-    const k  = map.getZoomScale(zoom, tz);         // 2^(tz - zoom): kesirli zoom düzeltmesi
-    const minT = pb.min.multiplyBy(k).divideBy(ts).floor();
-    const maxT = pb.max.multiplyBy(k).divideBy(ts).floor();
-    const size = ts / k;                           // karonun harita zoom'undaki piksel boyu
-    for (let y = minT.y; y <= maxT.y; y++) {
-      for (let x = minT.x; x <= maxT.x; x++) {
-        const c = new L.Point(x, y); c.z = tz;
-        if (layer._isValidTile && !layer._isValidTile(c)) continue;
-        const wc = layer._wrapCoords ? layer._wrapCoords(c) : c;
-        wc.z = tz;
-        jobs.push({
-          img: _loadTileImg(layer.getTileUrl(wc)),
-          dx: Math.floor((x * size - pb.min.x) * scale),
-          dy: Math.floor((y * size - pb.min.y) * scale),
-          dw: Math.ceil(size * scale) + 1,
-          alpha: layer.options.opacity == null ? 1 : layer.options.opacity
-        });
-      }
+async function _drawMapDom(ctx, mapDiv, mapRect, S) {
+  const rel = el => {
+    const r = el.getBoundingClientRect();
+    return { x: (r.left - mapRect.left) * S, y: (r.top - mapRect.top) * S, w: r.width * S, h: r.height * S };
+  };
+  const paneZ = el => {
+    const pane = el.closest('.leaflet-pane');
+    return pane ? (parseInt(getComputedStyle(pane).zIndex, 10) || 0) : 0;
+  };
+  const opacityOf = el => {
+    let o = 1;
+    for (let n = el; n && n !== mapDiv; n = n.parentElement) {
+      const v = parseFloat(getComputedStyle(n).opacity);
+      if (!isNaN(v)) o *= v;
     }
+    return o;
+  };
+
+  // 1) Altlık karoları (ekrandaki konumlarıyla)
+  const tiles = [];
+  map.eachLayer(layer => {
+    if (!(layer instanceof L.TileLayer)) return;
+    const lvl = layer._levels && layer._levels[layer._tileZoom];
+    if (!lvl || !lvl.el) return;
+    const op = layer.options.opacity == null ? 1 : layer.options.opacity;
+    lvl.el.querySelectorAll('img.leaflet-tile').forEach(im => {
+      if (!im.src || !im.complete || !im.naturalWidth) return;
+      const r = rel(im);
+      if (r.w <= 0 || r.h <= 0) return;
+      tiles.push({ r, op, p: _loadCorsImg(_corsUrl(im.src)) });
+    });
   });
-  const imgs = await Promise.all(jobs.map(j => j.img));
-  imgs.forEach((im, i) => {
+  const tImgs = await Promise.all(tiles.map(t => t.p));
+  tImgs.forEach((im, i) => {
     if (!im) return;
-    const j = jobs[i];
-    ctx.globalAlpha = j.alpha;
-    ctx.drawImage(im, j.dx, j.dy, j.dw, j.dw);
+    const t = tiles[i];
+    ctx.globalAlpha = t.op;
+    ctx.drawImage(im, Math.floor(t.r.x), Math.floor(t.r.y), Math.ceil(t.r.w) + 1, Math.ceil(t.r.h) + 1);
   });
+  ctx.globalAlpha = 1;
+
+  // 2) Üst katmanlar: canvas (havza, nokta, nehir), svg, marker ikonları — pane z-index sırasıyla
+  const items = [];
+  let order = 0;
+  mapDiv.querySelectorAll('canvas').forEach(cv => {
+    if (cv.closest('.leaflet-control') || !cv.width || !cv.height) return;
+    const r = rel(cv);
+    if (r.w <= 0 || r.h <= 0) return;
+    items.push({ z: paneZ(cv), o: order++, draw: async () => {
+      ctx.globalAlpha = opacityOf(cv);
+      ctx.drawImage(cv, r.x, r.y, r.w, r.h);
+    }});
+  });
+  mapDiv.querySelectorAll('svg.leaflet-zoom-animated').forEach(sv => {
+    const r = rel(sv);
+    if (r.w <= 0 || r.h <= 0) return;
+    items.push({ z: paneZ(sv), o: order++, draw: async () => {
+      const c = sv.cloneNode(true);
+      c.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      c.style.transform = '';
+      const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(c));
+      const im = await _loadCorsImg(url);
+      if (im) { ctx.globalAlpha = opacityOf(sv); ctx.drawImage(im, r.x, r.y, r.w, r.h); }
+    }});
+  });
+  mapDiv.querySelectorAll('img.leaflet-marker-icon').forEach(mi => {
+    if (!mi.complete || !mi.naturalWidth) return;
+    let ok = /^data:/.test(mi.src);
+    try { ok = ok || new URL(mi.src, location.href).origin === location.origin; } catch (e) {}
+    if (!ok) return;                       // başka kaynaklı ikon canvas'ı kirletir, atla
+    const r = rel(mi);
+    items.push({ z: paneZ(mi), o: order++, draw: async () => {
+      ctx.globalAlpha = opacityOf(mi);
+      ctx.drawImage(mi, r.x, r.y, r.w, r.h);
+    }});
+  });
+  items.sort((a, b) => a.z - b.z || a.o - b.o);
+  for (const it of items) { await it.draw(); }
   ctx.globalAlpha = 1;
 }
 
-function downloadMapAsImage() {
+async function downloadMapAsImage() {
   const mapDiv = document.getElementById('map');
   const btn    = document.getElementById('map-download-btn');
-  if (!mapDiv || typeof leafletImage !== 'function') {
-    alert('Harita dışa aktarma bileşeni yüklenemedi. Sayfayı yenileyip tekrar deneyin.');
-    return;
-  }
+  if (!mapDiv) return;
 
   const origLabel = btn ? btn.innerHTML : '';
   if (btn) { btn.innerHTML = '⏳ Hazırlanıyor...'; btn.disabled = true; }
-
   const restore = () => { if (btn) { btn.innerHTML = origLabel; btn.disabled = false; } };
 
-  // leaflet-image altlık karoları atlasın (onları kendimiz çiziyoruz)
-  const _tileLayers = [];
-  map.eachLayer(l => { if (l instanceof L.TileLayer) _tileLayers.push([l, l.options.maxZoom]); });
-  _tileLayers.forEach(([l]) => { l.options.maxZoom = -1; });
-  const _restoreTiles = () => _tileLayers.forEach(([l, mz]) => { l.options.maxZoom = mz; });
-
-  leafletImage(map, async function(err, baseCanvas) {
-    _restoreTiles();
-    if (err) {
-      console.error('leaflet-image hatası:', err);
-      alert('Harita görseli oluşturulamadı. Bazı altlık harita karoları tarayıcı güvenlik kısıtlaması nedeniyle dışa aktarılamamış olabilir.');
-      restore();
-      return;
-    }
-
+  try {
+    const mapRect = mapDiv.getBoundingClientRect();
     const SCALE = 2;
     const out = document.createElement('canvas');
-    out.width  = baseCanvas.width  * SCALE;
-    out.height = baseCanvas.height * SCALE;
+    out.width  = Math.round(mapRect.width  * SCALE);
+    out.height = Math.round(mapRect.height * SCALE);
     const ctx = out.getContext('2d');
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
-    try { await _drawBasemapTiles(ctx, SCALE); } catch (e) { console.warn('Altlık çizilemedi:', e); }
-    ctx.drawImage(baseCanvas, 0, 0, out.width, out.height);
+    ctx.fillStyle = getComputedStyle(mapDiv).backgroundColor || '#ddd';
+    ctx.fillRect(0, 0, out.width, out.height);
 
-    const mapRect = mapDiv.getBoundingClientRect();
+    await _drawMapDom(ctx, mapDiv, mapRect, SCALE);
 
     const legendEl = document.querySelector('.map-inline-legend');
     if (legendEl) {
@@ -5735,8 +5765,12 @@ function downloadMapAsImage() {
     a.href     = out.toDataURL('image/png');
     a.download = 'havza-haritasi.png';
     a.click();
+  } catch (err) {
+    console.error('PNG dışa aktarma hatası:', err);
+    alert('Harita görseli oluşturulamadı. Altlık harita karoları tarayıcı güvenlik kısıtlaması nedeniyle dışa aktarılamamış olabilir.');
+  } finally {
     restore();
-  });
+  }
 }
 
 function copyCite() {
