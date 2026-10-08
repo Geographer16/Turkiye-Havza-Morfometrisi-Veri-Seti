@@ -5607,6 +5607,15 @@ function _corsUrl(u) {
   if (/^data:/.test(u)) return u;
   return u + (u.indexOf('?') < 0 ? '?' : '&') + 'cors=1';   // önbellekteki CORS'suz kopyayı kullanma
 }
+/* Karo yükleyici: önce fetch + cache:'reload' (tarayıcıda CORS'suz önbelleklenmiş kopyayı atlar, URL'yi değiştirmez),
+   olmazsa eski yöntem (Image + ?cors=1) */
+async function _loadTileImg(url) {
+  try {
+    const r = await fetch(url, { mode: 'cors', cache: 'reload' });
+    if (r.ok) return await createImageBitmap(await r.blob());
+  } catch (e) { console.warn('Karo fetch hatası:', url, e && e.message); }
+  return _loadCorsImg(_corsUrl(url));
+}
 async function _pool(items, n, fn) {
   const res = new Array(items.length);
   let i = 0;
@@ -5637,8 +5646,9 @@ async function _drawTiles(ctx, S, extra) {
     for (let y = minT.y; y <= maxT.y; y++) {
       for (let x = minT.x; x <= maxT.x; x++) {
         const c = new L.Point(x, y); c.z = tz;
-        if (layer._isValidTile && !layer._isValidTile(c)) continue;
-        const wc = layer._wrapCoords ? layer._wrapCoords(c) : c;
+        const nT = Math.pow(2, tz);                    // tz'deki dünya genişliği (karo)
+        if (y < 0 || y >= nT) continue;                // dünya dışı (y)
+        const wc = new L.Point(((x % nT) + nT) % nT, y);   // x'i tz'ye göre sar
         wc.z = tz;
         layer._tileZoom = tz;
         let url;
@@ -5652,7 +5662,9 @@ async function _drawTiles(ctx, S, extra) {
       }
     }
   });
-  const imgs = await _pool(jobs, 16, j => _loadCorsImg(j.url));
+  const imgs = await _pool(jobs, 16, j => _loadTileImg(j.url));
+  const failed = imgs.filter(im => !im).length;
+  if (failed) console.warn('PNG: ' + failed + '/' + jobs.length + ' altlık karosu yüklenemedi (CORS/ağ). Ağ sekmesine bakın.');
   imgs.forEach((im, i) => {
     if (!im) return;
     const j = jobs[i];
