@@ -5609,12 +5609,16 @@ function _corsUrl(u) {
 }
 /* Karo yükleyici: önce fetch + cache:'reload' (tarayıcıda CORS'suz önbelleklenmiş kopyayı atlar, URL'yi değiştirmez),
    olmazsa eski yöntem (Image + ?cors=1) */
+let _tileDiag = { jobs: 0, failed: 0, err: '' };
 async function _loadTileImg(url) {
   try {
     const r = await fetch(url, { mode: 'cors', cache: 'reload' });
     if (r.ok) return await createImageBitmap(await r.blob());
-  } catch (e) { console.warn('Karo fetch hatası:', url, e && e.message); }
-  return _loadCorsImg(_corsUrl(url));
+    _tileDiag.err = 'HTTP ' + r.status + ' — ' + url;
+  } catch (e) { _tileDiag.err = (e && e.message) + ' — ' + url; }
+  const im = await _loadCorsImg(_corsUrl(url));
+  if (!im) console.warn('[PNG] karo yüklenemedi:', _tileDiag.err);
+  return im;
 }
 async function _pool(items, n, fn) {
   const res = new Array(items.length);
@@ -5664,6 +5668,8 @@ async function _drawTiles(ctx, S, extra) {
   });
   const imgs = await _pool(jobs, 16, j => _loadTileImg(j.url));
   const failed = imgs.filter(im => !im).length;
+  _tileDiag.jobs += jobs.length; _tileDiag.failed += failed;
+  console.log('[PNG] zoom+' + extra + ': ' + jobs.length + ' karo istendi, ' + failed + ' başarısız');
   if (failed) console.warn('PNG: ' + failed + '/' + jobs.length + ' altlık karosu yüklenemedi (CORS/ağ). Ağ sekmesine bakın.');
   imgs.forEach((im, i) => {
     if (!im) return;
@@ -5816,6 +5822,7 @@ async function downloadMapAsImage() {
   const restore = () => { if (btn) { btn.innerHTML = origLabel; btn.disabled = false; } };
 
   try {
+    _tileDiag = { jobs: 0, failed: 0, err: '' };
     const mapRect = mapDiv.getBoundingClientRect();
     // Yüksek çözünürlük: en uzun kenar ~8000 px'i geçmeyecek şekilde en çok 4x
     const SCALE = Math.max(2, Math.min(4, 8000 / Math.max(mapRect.width, mapRect.height)));
@@ -5916,6 +5923,8 @@ async function downloadMapAsImage() {
     a.href     = out.toDataURL('image/png');
     a.download = 'havza-haritasi.png';
     a.click();
+    if (_tileDiag.jobs === 0) alert('Uyarı: altlık harita için hiç karo istenmedi (tile katmanı bulunamadı).');
+    else if (_tileDiag.failed > 0) alert('Uyarı: ' + _tileDiag.failed + '/' + _tileDiag.jobs + ' altlık karosu yüklenemedi.\nSon hata: ' + _tileDiag.err);
   } catch (err) {
     console.error('PNG dışa aktarma hatası:', err);
     alert('Harita görseli oluşturulamadı. Altlık harita karoları tarayıcı güvenlik kısıtlaması nedeniyle dışa aktarılamamış olabilir.');
