@@ -5592,8 +5592,8 @@ function downloadDivAsImage(divId, filename) {
   });
 }
 
-/* PNG dışa aktarma: leaflet-image yerine, ekranda görünen haritayı (karolar + canvas/svg katmanları)
-   DOM'daki gerçek konumlarıyla birebir çizer. Böylece altlık ve havzalar her zaman hizalı olur. */
+/* PNG dışa aktarma: leaflet-image kullanılmaz. Altlık karoları ve vektör katmanları (havza, nokta, akarsu)
+   haritanın gerçek projeksiyonuyla, yüksek çözünürlükte yeniden çizilir; bu yüzden hizalı ve keskin olur. */
 function _loadCorsImg(url) {
   return new Promise(res => {
     const im = new Image();
@@ -5606,6 +5606,61 @@ function _loadCorsImg(url) {
 function _corsUrl(u) {
   if (/^data:/.test(u)) return u;
   return u + (u.indexOf('?') < 0 ? '?' : '&') + 'cors=1';   // önbellekteki CORS'suz kopyayı kullanma
+}
+async function _pool(items, n, fn) {
+  const res = new Array(items.length);
+  let i = 0;
+  await Promise.all(Array.from({ length: n }, async () => {
+    while (i < items.length) { const j = i++; res[j] = await fn(items[j]); }
+  }));
+  return res;
+}
+
+/* Altlık karoları: extra>0 ise ekran zoom'undan "extra" seviye daha yüksek karolar çekilir (daha keskin) */
+async function _drawTiles(ctx, S, extra) {
+  const zoom = map.getZoom();
+  const pb = map.getPixelBounds();
+  const jobs = [];
+  map.eachLayer(layer => {
+    if (!(layer instanceof L.TileLayer) || layer._tileZoom == null) return;
+    const base = layer._tileZoom;
+    const o = layer.options;
+    const maxZ = o.maxNativeZoom != null ? o.maxNativeZoom : (o.maxZoom != null ? o.maxZoom : 18);
+    const tz = Math.min(base + extra, maxZ);
+    if (extra > 0 && tz <= base) return;
+    const ts = layer.getTileSize().x;
+    const k = map.getZoomScale(zoom, tz);            // 2^(tz - zoom)
+    const size = ts / k;                             // karonun ekran pikseli cinsinden boyu
+    const minT = pb.min.multiplyBy(k).divideBy(ts).floor();
+    const maxT = pb.max.multiplyBy(k).divideBy(ts).floor();
+    const alpha = o.opacity == null ? 1 : o.opacity;
+    for (let y = minT.y; y <= maxT.y; y++) {
+      for (let x = minT.x; x <= maxT.x; x++) {
+        const c = new L.Point(x, y); c.z = tz;
+        if (layer._isValidTile && !layer._isValidTile(c)) continue;
+        const wc = layer._wrapCoords ? layer._wrapCoords(c) : c;
+        wc.z = tz;
+        layer._tileZoom = tz;
+        let url;
+        try { url = layer.getTileUrl(wc); } finally { layer._tileZoom = base; }
+        jobs.push({
+          url: _corsUrl(url), alpha,
+          dx: Math.floor((x * size - pb.min.x) * S),
+          dy: Math.floor((y * size - pb.min.y) * S),
+          dw: Math.ceil(size * S) + 1
+        });
+      }
+    }
+  });
+  const imgs = await _pool(jobs, 16, j => _loadCorsImg(j.url));
+  imgs.forEach((im, i) => {
+    if (!im) return;
+    const j = jobs[i];
+    ctx.globalAlpha = j.alpha;
+    ctx.drawImage(im, j.dx, j.dy, j.dw, j.dw);
+  });
+  ctx.globalAlpha = 1;
+  return jobs.length;
 }
 
 async function _drawMapDom(ctx, mapDiv, mapRect, S) {
@@ -5626,39 +5681,88 @@ async function _drawMapDom(ctx, mapDiv, mapRect, S) {
     return o;
   };
 
-  // 1) Altlık karoları (ekrandaki konumlarıyla)
-  const tiles = [];
-  map.eachLayer(layer => {
-    if (!(layer instanceof L.TileLayer)) return;
-    const lvl = layer._levels && layer._levels[layer._tileZoom];
-    if (!lvl || !lvl.el) return;
-    const op = layer.options.opacity == null ? 1 : layer.options.opacity;
-    lvl.el.querySelectorAll('img.leaflet-tile').forEach(im => {
-      if (!im.src || !im.complete || !im.naturalWidth) return;
-      const r = rel(im);
-      if (r.w <= 0 || r.h <= 0) return;
-      tiles.push({ r, op, p: _loadCorsImg(_corsUrl(im.src)) });
-    });
-  });
-  const tImgs = await Promise.all(tiles.map(t => t.p));
-  tImgs.forEach((im, i) => {
-    if (!im) return;
-    const t = tiles[i];
-    ctx.globalAlpha = t.op;
-    ctx.drawImage(im, Math.floor(t.r.x), Math.floor(t.r.y), Math.ceil(t.r.w) + 1, Math.ceil(t.r.h) + 1);
-  });
-  ctx.globalAlpha = 1;
+  // 1) Altlık: önce ekrandaki zoom'da, sonra (keskinlik için) daha yüksek zoom'da karolar
+  const W = mapRect.width, H = mapRect.height;
+  let d = Math.min(2, Math.max(0, Math.round(Math.log2(S))));
+  while (d > 0) {
+    const sz = 256 / Math.pow(2, d);
+    if ((W / sz + 2) * (H / sz + 2) <= 350) break;
+    d--;
+  }
+  await _drawTiles(ctx, S, 0);
+  if (d > 0) await _drawTiles(ctx, S, d);
 
-  // 2) Üst katmanlar: canvas (havza, nokta, nehir), svg, marker ikonları — pane z-index sırasıyla
+  // 2) Vektör katmanları (havza, mansap noktası, akarsu): haritanın projeksiyonuyla yüksek çözünürlükte
   const items = [];
   let order = 0;
+  const skip = new Set();
+  const viewB = map.getBounds().pad(0.15);
+  const cp = ll => { const q = map.latLngToContainerPoint(ll); return [q.x * S, q.y * S]; };
+  const ringsOf = ll => {
+    if (!ll || !ll.length) return [];
+    const f = ll[0];
+    if (f instanceof L.LatLng || (f && typeof f.lat === 'number')) return [ll];
+    return ll.flatMap(ringsOf);
+  };
+  const renderers = new Set();
+  map.eachLayer(l => { if (l instanceof L.Path && l._renderer instanceof L.Canvas) renderers.add(l._renderer); });
+
+  renderers.forEach(r => {
+    const cont = r._container;
+    if (!cont) return;
+    skip.add(cont);
+    const lyrs = [];
+    for (let o = r._drawFirst; o; o = o.next) { if (o.layer && o.layer._map) lyrs.push(o.layer); }
+    items.push({ z: paneZ(cont), o: order++, draw: async () => {
+      const baseOp = opacityOf(cont);
+      ctx.save();
+      for (const l of lyrs) {
+        const o = l.options;
+        if (l.getBounds) { try { if (!viewB.intersects(l.getBounds())) continue; } catch (e) {} }
+        ctx.beginPath();
+        let isLine = false;
+        if (l instanceof L.Polyline) {             // Polygon da Polyline'dır
+          const closed = l instanceof L.Polygon;
+          isLine = !closed;
+          ringsOf(l.getLatLngs()).forEach(ring => {
+            ring.forEach((ll, i) => { const [x, y] = cp(ll); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+            if (closed) ctx.closePath();
+          });
+        } else if (l instanceof L.CircleMarker || l instanceof L.Circle) {
+          const [x, y] = cp(l.getLatLng());
+          const rad = (l._radius != null ? l._radius : o.radius || 0) * S;
+          ctx.arc(x, y, rad, 0, Math.PI * 2);
+        } else continue;
+
+        if (o.fill && !isLine) {
+          ctx.globalAlpha = baseOp * (o.fillOpacity != null ? o.fillOpacity : 0.2);
+          ctx.fillStyle = o.fillColor || o.color;
+          ctx.fill(o.fillRule || 'evenodd');
+        }
+        if (o.stroke !== false && o.weight) {
+          ctx.globalAlpha = baseOp * (o.opacity != null ? o.opacity : 1);
+          ctx.lineWidth = o.weight * S;
+          ctx.strokeStyle = o.color;
+          ctx.lineCap = o.lineCap || 'round';
+          ctx.lineJoin = o.lineJoin || 'round';
+          ctx.setLineDash(o.dashArray ? String(o.dashArray).split(/[ ,]+/).map(v => parseFloat(v) * S) : []);
+          ctx.lineDashOffset = o.dashOffset ? parseFloat(o.dashOffset) * S : 0;
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }});
+  });
+
+  // 3) Diğer canvas'lar, svg ve marker ikonları (varsa) — ekrandaki konumlarıyla
   mapDiv.querySelectorAll('canvas').forEach(cv => {
-    if (cv.closest('.leaflet-control') || !cv.width || !cv.height) return;
+    if (skip.has(cv) || cv.closest('.leaflet-control') || !cv.width || !cv.height) return;
     const r = rel(cv);
     if (r.w <= 0 || r.h <= 0) return;
     items.push({ z: paneZ(cv), o: order++, draw: async () => {
       ctx.globalAlpha = opacityOf(cv);
       ctx.drawImage(cv, r.x, r.y, r.w, r.h);
+      ctx.globalAlpha = 1;
     }});
   });
   mapDiv.querySelectorAll('svg.leaflet-zoom-animated').forEach(sv => {
@@ -5670,18 +5774,19 @@ async function _drawMapDom(ctx, mapDiv, mapRect, S) {
       c.style.transform = '';
       const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(c));
       const im = await _loadCorsImg(url);
-      if (im) { ctx.globalAlpha = opacityOf(sv); ctx.drawImage(im, r.x, r.y, r.w, r.h); }
+      if (im) { ctx.globalAlpha = opacityOf(sv); ctx.drawImage(im, r.x, r.y, r.w, r.h); ctx.globalAlpha = 1; }
     }});
   });
   mapDiv.querySelectorAll('img.leaflet-marker-icon').forEach(mi => {
     if (!mi.complete || !mi.naturalWidth) return;
     let ok = /^data:/.test(mi.src);
     try { ok = ok || new URL(mi.src, location.href).origin === location.origin; } catch (e) {}
-    if (!ok) return;                       // başka kaynaklı ikon canvas'ı kirletir, atla
+    if (!ok) return;
     const r = rel(mi);
     items.push({ z: paneZ(mi), o: order++, draw: async () => {
       ctx.globalAlpha = opacityOf(mi);
       ctx.drawImage(mi, r.x, r.y, r.w, r.h);
+      ctx.globalAlpha = 1;
     }});
   });
   items.sort((a, b) => a.z - b.z || a.o - b.o);
@@ -5700,7 +5805,8 @@ async function downloadMapAsImage() {
 
   try {
     const mapRect = mapDiv.getBoundingClientRect();
-    const SCALE = 2;
+    // Yüksek çözünürlük: en uzun kenar ~8000 px'i geçmeyecek şekilde en çok 4x
+    const SCALE = Math.max(2, Math.min(4, 8000 / Math.max(mapRect.width, mapRect.height)));
     const out = document.createElement('canvas');
     out.width  = Math.round(mapRect.width  * SCALE);
     out.height = Math.round(mapRect.height * SCALE);
@@ -5714,12 +5820,15 @@ async function downloadMapAsImage() {
 
     const legendEl = document.querySelector('.map-inline-legend');
     if (legendEl) {
+      const riverCb = document.getElementById('river-toggle');
+      const riverOn = !!(riverCb && riverCb.checked);
       const lr = legendEl.getBoundingClientRect();
       const lx = (lr.left - mapRect.left) * SCALE;
-      const ly = (lr.top  - mapRect.top)  * SCALE;
-      const lw = lr.width  * SCALE;
-      const lh = lr.height * SCALE;
+      const lw = lr.width * SCALE;
+      const lh = (riverOn ? 104 : 66) * SCALE;
+      const ly = (lr.bottom - mapRect.top) * SCALE - lh;   // sağ-alt köşeye sabit
       const pad = 10 * SCALE;
+      const sw = 13 * SCALE;
 
       ctx.save();
       ctx.shadowColor = 'rgba(0,0,0,0.25)';
@@ -5741,7 +5850,7 @@ async function downloadMapAsImage() {
       ctx.fillText('LEJANT', lx + pad, ty);
       ty += 18 * SCALE;
 
-      const sw = 13 * SCALE;
+      // Havza sınırı
       ctx.fillStyle = 'rgba(163,59,46,0.2)';
       ctx.strokeStyle = '#a33b2e';
       ctx.lineWidth = 2 * SCALE;
@@ -5752,12 +5861,42 @@ async function downloadMapAsImage() {
       ctx.fillText('Havza Sınırı', lx + pad + sw + 7 * SCALE, ty);
       ty += 20 * SCALE;
 
+      // Mansap noktası
       ctx.beginPath();
       ctx.arc(lx + pad + sw/2, ty - sw/2 + 1 * SCALE, sw/2, 0, Math.PI * 2);
       ctx.fillStyle = '#9c5a34';
       ctx.fill();
       ctx.fillStyle = '#222';
       ctx.fillText('Mansap Noktası', lx + pad + sw + 7 * SCALE, ty);
+
+      // Akarsular (Strahler)
+      if (riverOn) {
+        ty += 20 * SCALE;
+        ctx.beginPath();
+        ctx.moveTo(lx + pad, ty - 4 * SCALE);
+        ctx.lineTo(lx + pad + sw, ty - 4 * SCALE);
+        ctx.strokeStyle = '#1c5fb3';
+        ctx.lineWidth = 2.5 * SCALE;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        ctx.fillStyle = '#222';
+        ctx.font = `${12 * SCALE}px sans-serif`;
+        ctx.fillText('Akarsular (Strahler)', lx + pad + sw + 7 * SCALE, ty);
+
+        ty += 17 * SCALE;
+        ctx.font = `${10 * SCALE}px sans-serif`;
+        ctx.fillStyle = '#444';
+        ctx.fillText('2', lx + pad, ty);
+        const bx = lx + pad + 11 * SCALE, bw = 70 * SCALE, bh = 6 * SCALE, by = ty - bh;
+        const g = ctx.createLinearGradient(bx, 0, bx + bw, 0);
+        g.addColorStop(0, '#2f80d4'); g.addColorStop(0.5, '#1c5fb3'); g.addColorStop(1, '#063178');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.roundRect ? ctx.roundRect(bx, by, bw, bh, 3 * SCALE) : ctx.rect(bx, by, bw, bh);
+        ctx.fill();
+        ctx.fillStyle = '#444';
+        ctx.fillText('9', bx + bw + 5 * SCALE, ty);
+      }
       ctx.restore();
     }
 
