@@ -1631,11 +1631,11 @@ function setMapHeight() {
 setMapHeight();
 window.addEventListener('resize', setMapHeight);
 const basemaps = {
-  osm:  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {attribution:'© Esri, HERE, Garmin, OpenStreetMap contributors'}),
-  topo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',  {attribution:'© OpenTopoMap', subdomains: 'abc'}),
-  sat:  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {attribution:'© Esri'}),
+  osm:  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {crossOrigin:'anonymous', attribution:'© Esri, HERE, Garmin, OpenStreetMap contributors'}),
+  topo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',  {crossOrigin:'anonymous', attribution:'© OpenTopoMap', subdomains: 'abc'}),
+  sat:  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {crossOrigin:'anonymous', attribution:'© Esri'}),
   dark: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-    attribution: '© Esri, HERE, Garmin', maxZoom: 16
+    crossOrigin:'anonymous', attribution: '© Esri, HERE, Garmin', maxZoom: 16
   })
 };
 basemaps.osm.addTo(map);
@@ -5681,6 +5681,29 @@ async function _drawTiles(ctx, S, extra) {
   return jobs.length;
 }
 
+/* Ekranda görünen karo <img>'lerini olduğu gibi çizer (URL/zoom hesabı yok) */
+async function _drawDomTiles(ctx, mapDiv, mapRect, S) {
+  const imgs = Array.from(mapDiv.querySelectorAll('.leaflet-tile-pane img.leaflet-tile'))
+    .filter(im => im.complete && im.naturalWidth > 0);
+  const zOf = im => parseInt(getComputedStyle(im.parentElement).zIndex, 10) || 0;
+  imgs.sort((a, b) => zOf(a) - zOf(b));
+  let n = 0;
+  for (const im of imgs) {
+    const r = im.getBoundingClientRect();
+    if (r.right < mapRect.left || r.left > mapRect.right || r.bottom < mapRect.top || r.top > mapRect.bottom) continue;
+    let op = 1;
+    for (let el = im; el && el !== mapDiv; el = el.parentElement) {
+      const v = parseFloat(getComputedStyle(el).opacity); if (!isNaN(v)) op *= v;
+    }
+    ctx.globalAlpha = op;
+    ctx.drawImage(im, Math.floor((r.left - mapRect.left) * S), Math.floor((r.top - mapRect.top) * S),
+                  Math.ceil(r.width * S) + 1, Math.ceil(r.height * S) + 1);
+    n++;
+  }
+  ctx.globalAlpha = 1;
+  return n;
+}
+
 async function _drawMapDom(ctx, mapDiv, mapRect, S) {
   const rel = el => {
     const r = el.getBoundingClientRect();
@@ -5707,7 +5730,10 @@ async function _drawMapDom(ctx, mapDiv, mapRect, S) {
     if ((W / sz + 2) * (H / sz + 2) <= 350) break;
     d--;
   }
-  await _drawTiles(ctx, S, 0);
+  const domN = await _drawDomTiles(ctx, mapDiv, mapRect, S);
+  _tileDiag.domOk = domN > 0;
+  console.log('[PNG] ekrandaki karo sayısı çizilen:', domN);
+  if (!domN) await _drawTiles(ctx, S, 0);
   if (d > 0) await _drawTiles(ctx, S, d);
 
   // 2) Vektör katmanları (havza, mansap noktası, akarsu): haritanın projeksiyonuyla yüksek çözünürlükte
@@ -5923,7 +5949,8 @@ async function downloadMapAsImage() {
     a.href     = out.toDataURL('image/png');
     a.download = 'havza-haritasi.png';
     a.click();
-    if (_tileDiag.jobs === 0) alert('Uyarı: altlık harita için hiç karo istenmedi (tile katmanı bulunamadı).');
+    if (_tileDiag.domOk) { /* ekran karoları çizildi, sorun yok */ }
+    else if (_tileDiag.jobs === 0) alert('Uyarı: altlık harita için hiç karo istenmedi (tile katmanı bulunamadı).');
     else if (_tileDiag.failed > 0) alert('Uyarı: ' + _tileDiag.failed + '/' + _tileDiag.jobs + ' altlık karosu yüklenemedi.\nSon hata: ' + _tileDiag.err);
   } catch (err) {
     console.error('PNG dışa aktarma hatası:', err);
