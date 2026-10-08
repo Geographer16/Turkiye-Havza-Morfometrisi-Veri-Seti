@@ -5642,7 +5642,7 @@ async function _drawTiles(ctx, S, extra) {
     const tz = Math.min(base + extra, maxZ);
     if (extra > 0 && tz <= base) return;
     const ts = layer.getTileSize().x;
-    const k = map.getZoomScale(zoom, tz);            // 2^(tz - zoom)
+    const k = map.getZoomScale(tz, zoom);            // 2^(tz - zoom)  (Leaflet: getZoomScale(toZoom, fromZoom))
     const size = ts / k;                             // karonun ekran pikseli cinsinden boyu
     const minT = pb.min.multiplyBy(k).divideBy(ts).floor();
     const maxT = pb.max.multiplyBy(k).divideBy(ts).floor();
