@@ -243,8 +243,9 @@
     width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; background: #9c5a34;
   }
   @media (max-width: 700px) {
-    .map-inline-legend { right: 6px; bottom: 18px; padding: 7px 9px 8px 9px; }
-    .map-inline-legend .mil-row { font-size: 11px; }
+    .map-inline-legend { right: 6px; bottom: 20px; padding: 6px 8px 7px 8px; }
+    .map-inline-legend .mil-title { font-size: 10px; margin-bottom: 4px; }
+    .map-inline-legend .mil-row { font-size: 10.5px; padding: 1px 0; gap: 6px; }
   }
 
   .map-search-icon { font-size: 13px; color: var(--text3); flex-shrink: 0; }
@@ -617,9 +618,9 @@
     #map-wid-suggestions { left:0 !important; right:0 !important; min-width:0 !important; }
     .map-card .card-header button, .map-card .card-header select { min-height:38px; }
 
-    .leaflet-bottom { bottom:58px; }
-    .map-inline-legend { bottom:70px !important; }
-    #map-wid-search-msg { bottom:70px !important; }
+    /* Lejant ve bildirimler haritanın gerçek alt köşesine sabit; alt çekmece için boşluk .map-layout padding-bottom ile sağlanıyor */
+    .map-inline-legend { right:6px; bottom:20px; max-width:calc(100% - 12px); }
+    #map-wid-search-msg { bottom:20px; }
     .leaflet-touch .leaflet-bar a { width:40px; height:40px; line-height:40px; }
     .map-layout { padding-bottom:calc(64px + env(safe-area-inset-bottom, 0px)); }
 
@@ -631,6 +632,8 @@
       filter:drop-shadow(0 -4px 14px rgba(0,0,0,.22));
     }
     .sidebar-left.open { transform:none; }
+    .sidebar-left.dragging { transition:none; }
+    .sidebar-left .card-header { touch-action:none; user-select:none; -webkit-user-select:none; }
     .sidebar-left .panel { border-radius:16px 16px 0 0; border-bottom:none; display:flex; flex-direction:column; max-height:52vh; max-height:52dvh; }
     .sidebar-left .card-header { position:relative; min-height:52px; padding-top:14px; cursor:pointer; flex-shrink:0; }
     .sidebar-left .card-header::before { content:''; position:absolute; top:6px; left:50%; width:38px; height:4px; border-radius:4px; background:var(--border); transform:translateX(-50%); }
@@ -1624,7 +1627,10 @@ function setMapHeight() {
   const cardHeaderH = document.querySelector('.map-card .card-header')?.offsetHeight || 44;
   const padding = 28;
   const minH = 400;
-  const h = Math.max(minH, window.innerHeight - headerH - searchBarH - cardHeaderH - padding - 10);
+  const isMobile = window.matchMedia('(max-width: 700px)').matches;
+  const vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+  const sheetPeek = isMobile ? 64 : 0;   // mobilde alt çekmece payı
+  const h = Math.max(isMobile ? 340 : minH, vh - headerH - searchBarH - cardHeaderH - padding - 10 - sheetPeek);
   mapEl.style.height = h + 'px';
   map.invalidateSize();
 }
@@ -6376,7 +6382,7 @@ function mobileRevealPoint(latlng) {
 }
 (function () {
   const hd = document.querySelector('.sidebar-left .card-header');
-  if (hd) hd.addEventListener('click', () => { if (_mobileMQ.matches) mobileSheet(); });
+  if (hd) hd.addEventListener('click', () => { if (window._sheetDragged) { window._sheetDragged = false; return; } if (_mobileMQ.matches) mobileSheet(); });
   if (typeof onPointClick === 'function') {
     const _orig = onPointClick;
     onPointClick = async function (props, latlng) {
@@ -6390,14 +6396,86 @@ function mobileRevealPoint(latlng) {
 (function () {
   const sb = document.querySelector('.sidebar-left');
   const hd = sb && sb.querySelector('.card-header');
-  if (!hd) return;
-  let y0 = null;
-  hd.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; }, { passive: true });
-  hd.addEventListener('touchend', e => {
-    if (y0 === null || !_mobileMQ.matches) return;
-    const dy = e.changedTouches[0].clientY - y0; y0 = null;
-    if (dy > 40) mobileSheet(false); else if (dy < -40) mobileSheet(true);
-  }, { passive: true });
+  const body = sb && sb.querySelector('.panel-body');
+  if (!sb || !hd) return;
+
+  // Kapalı konum payı (52px + güvenli alan) — CSS ile aynı ifadeyi ölçerek
+  function peekPx() {
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;visibility:hidden;height:calc(52px + env(safe-area-inset-bottom, 0px));';
+    document.body.appendChild(probe);
+    const h = probe.offsetHeight; probe.remove();
+    return h || 52;
+  }
+
+  let drag = null;   // { startY, baseY, closedY, lastY, lastT, v, moved }
+
+  function begin(clientY) {
+    const H = sb.offsetHeight;
+    const closedY = Math.max(0, H - peekPx());
+    const isOpen = sb.classList.contains('open');
+    drag = { startY: clientY, baseY: isOpen ? 0 : closedY, closedY, lastY: clientY, lastT: performance.now(), v: 0, moved: false };
+    sb.classList.add('dragging');
+  }
+  function move(clientY) {
+    if (!drag) return;
+    const dy = clientY - drag.startY;
+    if (Math.abs(dy) > 6) drag.moved = true;
+    const y = Math.min(drag.closedY, Math.max(0, drag.baseY + dy));
+    sb.style.transform = 'translateY(' + y + 'px)';
+    const now = performance.now(), dt = now - drag.lastT;
+    if (dt > 0) drag.v = (clientY - drag.lastY) / dt;   // px/ms, + = aşağı
+    drag.lastY = clientY; drag.lastT = now;
+  }
+  function end() {
+    if (!drag) return;
+    const d = drag; drag = null;
+    const cur = new DOMMatrix(getComputedStyle(sb).transform).m42;
+    sb.classList.remove('dragging');
+    sb.style.transform = '';
+    if (d.moved) {
+      window._sheetDragged = true;
+      setTimeout(() => { window._sheetDragged = false; }, 350);
+      let open;
+      if (Math.abs(d.v) > 0.4) open = d.v < 0;          // hızlı fırlatma: yönüne göre
+      else open = cur < d.closedY / 2;                   // yavaş bırakma: yarıyı geçtiyse
+      mobileSheet(open);
+    }
+  }
+
+  // Başlık: pointer events (dokunmatik + fare)
+  hd.addEventListener('pointerdown', e => {
+    if (!_mobileMQ.matches) return;
+    begin(e.clientY);
+    try { hd.setPointerCapture(e.pointerId); } catch (_) {}
+  });
+  hd.addEventListener('pointermove', e => { if (drag) move(e.clientY); });
+  hd.addEventListener('pointerup', end);
+  hd.addEventListener('pointercancel', end);
+
+  // İçerik: en üstteyken aşağı çekince panel kapansın (içerik kaydırması ile çakışmaz)
+  if (body) {
+    let bStart = null, bActive = false;
+    body.addEventListener('touchstart', e => {
+      if (!_mobileMQ.matches || !sb.classList.contains('open')) { bStart = null; return; }
+      bStart = body.scrollTop <= 0 ? e.touches[0].clientY : null;
+      bActive = false;
+    }, { passive: true });
+    body.addEventListener('touchmove', e => {
+      if (bStart === null) return;
+      const y = e.touches[0].clientY;
+      if (!bActive) {
+        if (y - bStart > 8 && body.scrollTop <= 0) { bActive = true; begin(bStart); }
+        else return;
+      }
+      e.preventDefault();
+      move(y);
+    }, { passive: false });
+    const bEnd = () => { if (bActive) { bActive = false; end(); } bStart = null; };
+    body.addEventListener('touchend', bEnd, { passive: true });
+    body.addEventListener('touchcancel', bEnd, { passive: true });
+  }
+
   if (typeof map !== 'undefined' && map && map.on) map.on('click', () => { if (_mobileMQ.matches) mobileSheet(false); });
 })();
 </script>
