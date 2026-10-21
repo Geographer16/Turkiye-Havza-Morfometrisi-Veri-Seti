@@ -17,6 +17,7 @@
 <meta property="og:description" content="Türkiye'deki akarsu havzalarına ait morfometrik parametrelerin interaktif harita üzerinden incelenebildiği, karşılaştırılabildiği ve indirilebildiği açık veri tabanı.">
 <meta property="og:image" content="https://geographer16.github.io/Turkiye-Havza-Morfometrisi-Veri-Seti/Data/HM_V2.png">
 <meta property="og:locale" content="tr_TR">
+<meta property="og:locale:alternate" content="en_US">
 <meta property="og:url" content="https://geographer16.github.io/Turkiye-Havza-Morfometrisi-Veri-Seti/">
 
 <meta name="twitter:card" content="summary">
@@ -142,6 +143,12 @@
     transition: background 0.15s;
   }
   #theme-toggle-btn:hover { background: rgba(255,255,255,0.22); }
+  .header-tools { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .lang-switch { display: inline-flex; height: 30px; border: 1px solid rgba(255,255,255,0.25); border-radius: var(--radius-sm); overflow: hidden; }
+  .lang-switch button { background: none; border: none; color: rgba(255,255,255,0.7); padding: 0 11px; font: 600 11.5px/1 var(--font-sans); letter-spacing: 0.4px; cursor: pointer; transition: background 0.15s, color 0.15s; }
+  .lang-switch button + button { border-left: 1px solid rgba(255,255,255,0.25); }
+  .lang-switch button:hover { background: rgba(255,255,255,0.14); color: #fff; }
+  .lang-switch button.active { background: rgba(255,255,255,0.24); color: #fff; }
 
   .hero {
     background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='200' viewBox='0 0 400 200'%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='1' opacity='0.09'%3E%3Cpath d='M0 40 Q60 55 90 90 T190 100'/%3E%3Cpath d='M90 90 Q105 130 130 175'/%3E%3Cpath d='M190 100 Q230 60 280 75 T400 40'/%3E%3Cpath d='M280 75 Q295 120 315 165'/%3E%3Cpath d='M315 165 Q335 135 365 145'/%3E%3C/g%3E%3C/svg%3E") repeat, var(--surface-dark);
@@ -604,7 +611,9 @@
     .header-brand img { width:40px !important; height:40px !important; margin-left:0 !important; }
     .header-sub { display:none; }
     .header-title { font-size:13.5px; line-height:1.25; }
-    #theme-toggle-btn { grid-column:2; grid-row:1; width:38px; height:38px; }
+    .header-tools { grid-column:2; grid-row:1; }
+    #theme-toggle-btn { width:38px; height:38px; }
+    .lang-switch { height:38px; }
     nav { grid-column:1 / -1; grid-row:2; flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; margin:0 -12px; padding:0 12px; }
     nav::-webkit-scrollbar { display:none; }
     nav button { flex:0 0 auto; min-height:38px; padding:6px 14px; }
@@ -834,6 +843,211 @@
     } catch (e) {}
   })();
 </script>
+<script>
+/* TR / EN dil desteği: sözlük + DOM çevirici. Varsayılan dil: kayıtlı tercih > ?lang= > tarayıcı dili */
+(function () {
+  'use strict';
+  var LS = 'thm-lang', ATTRS = ['title', 'placeholder', 'aria-label', 'label', 'alt'];
+  var lang = 'tr';
+  try {
+    var qp = new URLSearchParams(location.search).get('lang'), sv = null;
+    try { sv = localStorage.getItem(LS); } catch (e) {}
+    lang = (qp === 'en' || qp === 'tr') ? qp : (sv === 'en' || sv === 'tr') ? sv : (/^tr\b/i.test(navigator.language || 'tr') ? 'tr' : 'en');
+  } catch (e) {}
+  window.LANG = lang; document.documentElement.lang = lang;
+  window.LT = function (a, b) { return window.LANG === 'en' ? b : a; };
+  window.LOC = function () { return window.LANG === 'en' ? 'en' : 'tr'; };
+  var D = Object.create(null);
+  function norm(s) { return String(s).replace(/\s+/g, ' ').trim(); }
+  [
+["Türkiye Havza Morfometrisi Veri Tabanı","Türkiye Watershed Morphometry Database"],
+["Türkiye'deki akarsu havzalarına ait morfometrik parametrelerin (drenaj yoğunluğu, Strahler derecesi, eğim, iklim ve topoğrafya verileri dahil) interaktif harita üzerinden incelenebildiği, karşılaştırılabildiği ve indirilebildiği açık veri tabanı.","An open database of morphometric parameters of Türkiye's river basins (including drainage density, Strahler order, slope, climate and topography data) that can be explored, compared and downloaded via an interactive map."],
+["Başlatılıyor…","Starting…"],["Havza çıkış noktaları yükleniyor…","Loading watershed outlet points…"],["Morfometri verileri okunuyor…","Reading morphometry data…"],["Genel havza şeması hazırlanıyor…","Preparing general basin layer…"],["Harita hazırlanıyor…","Preparing map…"],["Hazır","Ready"],
+["Harita","Map"],["Tablo","Table"],["İstatistik","Statistics"],["İndir","Download"],["Hakkında","About"],
+["Karanlık/aydınlık mod","Dark/light mode"],["Tema değiştir","Toggle theme"],
+["Seçili Nokta","Selected Point"],["✕ Temizle","✕ Clear"],["Shift+tıkla ile ekle","Shift+click to add"],
+["Haritadan bir çıkış noktasına tıklayın.","Click an outlet point on the map."],["Birden fazla için","For multiple:"],["+tıkla","+click"],
+["İlişkili Havza","Related Watershed"],["⬇ Seçili Havzayı İndir","⬇ Download Selected Watershed"],
+["📊 Excel (Veri)","📊 Excel (Data)"],["Sadece attribute/öznitelik verisi","Attribute data only"],
+["🔗 Bağlantı Paylaş","🔗 Share Link"],["Seçili havzaları içeren bağlantıyı kopyala","Copy a link containing the selected watersheds"],
+["Polygon dosya formatı","Polygon file format"],["🗺 Polygon İndir","🗺 Download Polygon"],["Havza sınır geometrisi","Watershed boundary geometry"],
+["İnteraktif Harita","Interactive Map"],["WID ara... (örn. 1024)","Search WID... (e.g. 1024)"],["Ara","Search"],["Altlık Harita","Basemap"],
+["🗺 Sokak Haritası","🗺 Street Map"],["🗺 Topografik","🗺 Topographic"],["🛰 Uydu","🛰 Satellite"],["🌙 Karanlık","🌙 Dark"],
+["✏ Alan Çiz","✏ Draw Area"],["Alan çizerek içindeki noktaları toplu seç","Draw an area to select all points inside it"],
+["▭ Dikdörtgen çiz","▭ Draw rectangle"],["⬠ Serbest çokgen çiz","⬠ Draw free polygon"],["↺ Son alanı tekrar kullan","↺ Reuse last area"],
+["Görünen haritayı PNG olarak indir","Download the visible map as PNG"],
+["Dikdörtgen çizmek için haritaya tıklayıp sürükleyin","Click and drag on the map to draw a rectangle"],
+["✓ Bitir","✓ Finish"],["✕ İptal (Esc)","✕ Cancel (Esc)"],["✓ Onayla ve Seç","✓ Confirm and Select"],["✕ Vazgeç","✕ Discard"],
+["Köşeleri sırayla tıklayın, bitirmek için \"Bitir\"e basın veya son noktaya çift tıklayın","Click the corners in order; press \"Finish\" or double-click the last point"],
+["Köşeleri sürükleyerek alanı ayarlayabilirsiniz","Drag the corners to adjust the area"],
+["Lejant","Legend"],["LEJANT","LEGEND"],["Havza Sınırı","Watershed Boundary"],["Mansap Noktası","Outlet Point"],["Akarsular (Strahler)","Streams (Strahler)"],["Akarsu verisi yükleniyor…","Loading stream data…"],
+["⚖️ Nokta Karşılaştırması","⚖️ Point Comparison"],["✕ Kapat","✕ Close"],["Kapat","Close"],["🟢 En yüksek | 🔴 En düşük değer (sayısal alanlarda)","🟢 Highest | 🔴 Lowest value (numeric fields)"],
+["🔍 Havza adı, değer veya alana göre filtrele...","🔍 Filter by watershed name, value or field..."],
+["📍 Haritada Göster","📍 Show on Map"],["Filtrelenmiş sonuçları haritada seç","Select the filtered results on the map"],["⬇ CSV İndir","⬇ Download CSV"],["CSV yüklenmedi","CSV not loaded"],
+["İlk sayfa","First page"],["Önceki sayfa","Previous page"],["Sonraki sayfa","Next page"],["Son sayfa","Last page"],["‹ Önceki","‹ Previous"],["Sonraki ›","Next ›"],
+["Başlığa çift tıklayarak sıralayın","Double-click a header to sort"],["Haritada göster","Show on map"],["Tüm kayıtlar indirilir","All records will be downloaded"],
+["DSİ Havzası","DSI Basin"],["DSİ Havza Kodu","DSI Basin Code"],["DSİ Kodu","DSI Code"],["GTS Kodu","GTS Code"],["Alan (km²)","Area (km²)"],["Alan km²","Area km²"],["Taban","GTS Basin"],["Jeo Era","Geologic Period"],["Jeo Desc","Lithology"],
+["Strahler Dizin No","Strahler Order"],["GTS Havzası (Kod)","GTS Basin (Code)"],["Jeolojik Dönem","Geologic Period"],["Litoloji","Lithology"],
+["🔍 Veri Filtresi","🔍 Data Filter"],["— Tümü —","— All —"],["🏔 DSİ Havzası","🏔 DSI Basin"],["🔢 DSİ Havza Kodu","🔢 DSI Basin Code"],
+["Kategorik Dağılım","Categorical Distribution"],["Scatter Plot — İki Alan Arası İlişki","Scatter Plot — Relationship Between Two Fields"],
+["Eğilim Çizgisi","Trend Line"],["X Ekseni","X Axis"],["Y Ekseni","Y Axis"],["Renk (Kategorik)","Color (Categorical)"],["Yok","None"],["Frekans","Frequency"],
+["🖱 Tekerlek: yakınlaştır/uzaklaştır | ⇧ Shift+sürükle: alana odaklan","🖱 Wheel: zoom in/out | ⇧ Shift+drag: zoom to area"],
+["(haritada görmek için çift tıkla)","(double-click to show on map)"],
+["Korelasyon Matrisi","Correlation Matrix"],["Korelasyon Metodu","Correlation Method"],["🔄 Hesapla","🔄 Calculate"],["🎨 Renk Paleti","🎨 Color Palette"],["✏️ Özel Renk","✏️ Custom Color"],["🎨 Palet","🎨 Palette"],["Gri","Gray"],
+["Okabe–Ito (Renk Körlüğü Güvenli)","Okabe–Ito (Colorblind-Safe)"],["Cividis (Renk Körlüğü Güvenli)","Cividis (Colorblind-Safe)"],["Kurumsal (Vazife)","Corporate (Vazife)"],
+["⬆ Ayarları yapıp","⬆ Set the options and click the"],["Hesapla","Calculate"],["butonuna basın.","button."],["⬆ Filtre değişti —","⬆ Filter changed — click the"],
+["⏳ Hesaplanıyor…","⏳ Calculating…"],["(aralık: 0–1, yön bilgisi içermez)","(range: 0–1, no direction information)"],["(diğer değişkenlerin etkisi giderilmiş)","(effect of the other variables removed)"],["Hücre üzerine gelin: tam değer","Hover over a cell: exact value"],
+["Bar Graph — Strahler Sırasına Göre Dağılım","Bar Graph — Distribution by Strahler Order"],["Strahler Sırasına Göre","by Strahler Order"],["Alan","Field"],["Ortalama","Mean"],["Medyan","Median"],
+["Çubuklar → Ortalama (Mean) | Kırmızı çizgi → Medyan (Median)","Bars → Mean | Red line → Median"],
+["Havza Bileşim Profili — İklim ve Arazi Örtüsü","Watershed Composition Profile — Climate and Land Cover"],
+["Bu veriler, seçilen havzanın","These data show"],["alanının yüzde kaçının hangi sınıfa ait olduğunu","what percentage of the selected watershed's area belongs to each class."],
+["gösterir. Haritada bir havza seçtiyseniz burada otomatik açılır, ya da WID yazabilirsiniz.","If you select a watershed on the map, it opens here automatically, or you can type a WID."],
+["WID yazın (örn. 1024)","Enter a WID (e.g. 1024)"],["Göster","Show"],["Haritada seçili havza","Watershed selected on map"],["Haritada şu an seçili olan havzayı getir","Load the watershed currently selected on the map"],
+["İklim Sınıfları","Climate Classes"],["Arazi Örtüsü","Land Cover"],["Arazi kullanımı","Land use"],["İklim Sınıfları (Köppen-Geiger)","Climate Classes (Köppen-Geiger)"],["Arazi Örtüsü / Kullanımı","Land Cover / Use"],["İklim (Köppen-Geiger)","Climate (Köppen-Geiger)"],
+["Bir WID yazın.","Enter a WID."],["Haritada seçili havza yok. Önce bir noktaya tıklayın.","No watershed is selected on the map. Click a point first."],
+["Haritadan bir havza seçin ya da yukarıya WID yazın.","Select a watershed on the map or enter a WID above."],["Bu havza için veri yok.","No data for this watershed."],
+["Veri bulunamadı.","No data found."],["CSV yüklenmedi.","CSV not loaded."],["Havza yükleniyor...","Loading watershed..."],["SEÇİLİ NOKTALAR","SELECTED POINTS"],["Kaldır","Remove"],["Havza Verileri (CSV)","Watershed Data (CSV)"],
+["km² toplam","km² total"],["km² ortalama","km² average"],
+["Liste görünümü 5'in üzerindeki seçimlerde kapatılır — noktalar haritada işaretli kalır. Tek tek kaldırmak için haritada Shift+tıklayın.","The list view is hidden for more than 5 selections — points stay marked on the map. Shift+click on the map to remove them one by one."],
+["İndirme","Downloads"],["Kaynak kodu, veri ve dokümantasyon. Tüm güncel sürümler burada.","Source code, data and documentation. All current versions are here."],
+["GitHub'a Git →","Go to GitHub →"],["⬇ GitHub'dan İndir","⬇ Download from GitHub"],["Zenodo Arşivi","Zenodo Archive"],
+["DOI ile kalıcı akademik arşiv. Tüm formatlar tek pakette, uzun dönem erişim garantili.","Permanent academic archive with a DOI. All formats in one package, long-term access guaranteed."],
+["🔗 Zenodo'ya Git","🔗 Go to Zenodo"],["⬇ Zenodo'dan İndir","⬇ Download from Zenodo"],["Atıf / Kaynak Gösterme","Citation"],["📋 Kopyala","📋 Copy"],["✓ Kopyalandı","✓ Copied"],
+["Veri Tabanı Hakkında","About the Database"],
+["Bu veri tabanı, Türkiye'nin akarsu havzaları ve drenaj ağlarına ait morfometrik parametreleri sistematik olarak bir araya getirmektedir. CBS teknikleriyle üretilen veriler; havza alanı, çevre uzunluğu, drenaj yoğunluğu ve çeşitli form faktörleri gibi parametreleri kapsamaktadır.","This database systematically brings together morphometric parameters of Türkiye's river basins and drainage networks. The data, produced with GIS techniques, cover parameters such as watershed area, perimeter, drainage density and various form factors."],
+["Veriler akademik araştırma, su kaynakları yönetimi ve doğal afet risk değerlendirmesi gibi alanlarda kullanılabilir.","The data can be used in areas such as academic research, water resources management and natural hazard risk assessment."],
+["GitHub Deposu →","GitHub Repository →"],["Metodoloji","Methodology"],
+["ArcGIS için geliştirilmiş, havza morfometrisi hesaplamalarını otomatikleştiren bir araçtır. Bu veri tabanındaki morfometrik parametreler HydroMachine ile üretilmiştir.","A tool developed for ArcGIS that automates watershed morphometry calculations. The morphometric parameters in this database were produced with HydroMachine."],
+["📄 Makale","📄 Paper"],["Teknik Bilgi","Technical Information"],
+["Veri seti bilgileri, Türkiye Ulusal Coğrafi Bilgi Sistemi (TUCBS) metaveri bileşenleri esas alınarak düzenlenmiştir.","Dataset information is organised based on the metadata components of the Türkiye National Geographic Information System (TUCBS)."],
+["⬇ Metaveri (XML)","⬇ Metadata (XML)"],["⬇ Metaveri (JSON)","⬇ Metadata (JSON)"],["ISO 19115/19139 yapısında temel metaveri elemanları","Core metadata elements in ISO 19115/19139 structure"],
+["İletişim","Contact"],["Veri hataları, öneriler veya iş birlikleri için GitHub Issues kullanabilir veya mail üzerinden iletişim kurabilirsiniz:","For data errors, suggestions or collaboration, use GitHub Issues or contact us by email:"],["Issue Aç →","Open an Issue →"],
+["Seçimi Paylaş","Share Selection"],["Bu bağlantıyı açan kişi, aynı havzaları seçili olarak otomatik görür.","Anyone opening this link automatically sees the same watersheds selected."],["📋 Bağlantıyı Kopyala","📋 Copy Link"],["⚠ Kopyalanamadı, elle seçip Ctrl+C yapın","⚠ Could not copy — select it manually and press Ctrl+C"],
+["⚠ Nokta verisi henüz yüklenmedi.","⚠ Point data has not been loaded yet."],["⚠ Paylaşılacak geçerli bir seçim bulunamadı.","⚠ No valid selection to share."],
+["⚠ Bir alan tanımlamak için en az 3 köşe gerekir.","⚠ At least 3 corners are needed to define an area."],["ℹ Çizilen alan içinde hiç mansap noktası bulunamadı.","ℹ No outlet points found inside the drawn area."],
+["Önce haritadan bir çıkış noktası / havza seçin.","First select an outlet point / watershed on the map."],["Önce CSV yükleyin.","Load the CSV first."],["Harita nokta verisi henüz yüklenmedi.","Map point data has not been loaded yet."],
+["Filtrelenmiş kayıtlar için haritada eşleşen nokta bulunamadı.","No matching points on the map for the filtered records."],["Seçili havza(lar) için polygon verisi bulunamadı.","No polygon data found for the selected watershed(s)."],
+["Excel kütüphanesi yüklenemedi (XLSX). İnternet bağlantınızı kontrol edin.","The Excel library (XLSX) could not be loaded. Check your internet connection."],
+["Havza Verisi","Watershed Data"],["Sınır Dışı","Outside Border"],
+["Seçili havza(lar) için polygon verisi bulunamadı. Önce polygon klasörünü yükleyin.","No polygon data found for the selected watershed(s). Load the polygon folder first."],
+["Önce polygon klasörünü yükleyin.","Load the polygon folder first."],
+["Shapefile kütüphanesi yüklenemedi. GeoJSON formatını deneyin.","The Shapefile library could not be loaded. Try the GeoJSON format."],
+["GeoJSON formatını deneyin.","Try the GeoJSON format."],
+["Görsel indirilemedi. Konsolu kontrol edin.","The image could not be downloaded. Check the console."],
+["Uyarı: altlık harita için hiç karo istenmedi (tile katmanı bulunamadı).","Warning: no tiles were requested for the basemap (tile layer not found)."],
+["Harita görseli oluşturulamadı. Altlık harita karoları tarayıcı güvenlik kısıtlaması nedeniyle dışa aktarılamamış olabilir.","The map image could not be created. Basemap tiles may not have been exportable because of a browser security restriction."],
+["⚠ Korelasyon için sayısal parametre bulunamadı.","⚠ No numeric parameters found for correlation."],
+["⚠ Hesaplama başarısız. Daha fazla veri veya farklı filtre deneyin.","⚠ Calculation failed. Try more data or a different filter."]
+  ].forEach(function (p) { D[norm(p[0])] = p[1]; });
+  var TPI = { 'Dereler': 'Streams', 'Yamaç Ortası Drenajları': 'Midslope Drainages', 'Yüksek Arazi Drenajları': 'Upland Drainages', 'Vadiler': 'Valleys', 'Düzlükler': 'Plains', 'Açık Yamaçlar': 'Open Slopes', 'Üst Yamaçlar': 'Upper Slopes', 'Yerel Sırtlar': 'Local Ridges', 'Yamaç Ortası Sırtları': 'Midslope Ridges', 'Yüksek Sırtlar': 'High Ridges' };
+  function pl(n, one, many) { return n + ' ' + (n === '1' ? one : many); }
+  var RULES = [
+    [/^(\d+) nokta (?:seçildi|seçili)$/, function (m, n) { return pl(n, 'point', 'points') + ' selected'; }],
+    [/^⚠ En fazla (\d+) köşe çizebilirsiniz\. Lütfen çizimi bitirin\.$/, '⚠ You can draw at most $1 corners. Please finish the drawing.'],
+    [/^⚠ Çizilen alan içinde (\d+) nokta var — bu, üst sınırın \((\d+)\) üzerinde\. Lütfen daha küçük bir alan çizin\.$/, '⚠ There are $1 points inside the drawn area — this exceeds the limit ($2). Please draw a smaller area.'],
+    [/^⏳ Lütfen (\d+) saniye sonra tekrar deneyin \(art arda toplu seçim sınırı\)\.$/, '⏳ Please try again in $1 seconds (limit on consecutive bulk selections).'],
+    [/^Shapefile oluşturulamadı: (.*)$/, 'Could not create the Shapefile: $1'],
+    [/^Uyarı: (\d+)\/(\d+) altlık karosu yüklenemedi\.$/, 'Warning: $1/$2 basemap tiles could not be loaded.'],
+    [/^Son hata: (.*)$/, 'Last error: $1'],
+    [/^Filtrelenmiş sonuç sayısı \((\d+)\) çok yüksek \(üst sınır: (\d+)\)\. Lütfen filtreyi daraltın\.$/, 'The number of filtered results ($1) is too high (limit: $2). Please narrow the filter.'],
+    [/^⚠ Bu filtre kombinasyonunda yeterli veri yok \((\d+) satır < 3\)\. Lütfen filtreyi genişletin\.$/, '⚠ Not enough data for this filter combination ($1 rows < 3). Please broaden the filter.'],
+    [/^(\d+) nokta$/, function (m, n) { return pl(n, 'point', 'points'); }],
+    [/^⏳ (\d+) nokta ekleniyor…$/, '⏳ Adding $1 points…'],
+    [/^✓ (\d+) nokta seçime eklendi\. Aşağıdaki panelden indirebilirsiniz\.$/, '✓ $1 points added to the selection. You can download them from the panel below.'],
+    [/^(\d+) köşe eklendi — bitirmek için "Bitir"e basın$/, '$1 corners added — press "Finish" to complete'],
+    [/^✓ WID bulundu, haritada gösteriliyor: (.+)$/, '✓ WID found, showing on map: $1'],
+    [/^✗ "(.+)" koduna sahip nokta bulunamadı\.$/, '✗ No point found with code "$1".'],
+    [/^"(.+)" bulunamadı\.$/, '"$1" not found.'],
+    [/^Nokta (\d+)$/, 'Point $1'],
+    [/^(.+) — çift tıkla sırala$/, function (m, a) { return trText(a) + ' — double-click to sort'; }],
+    [/^(\d+) havzadan (\d+)–(\d+) arası gösteriliyor$/, 'Showing $2–$3 of $1 watersheds'],
+    [/^0 havza$/, '0 watersheds'],
+    [/^📍 Haritada Göster \((\d+)\)$/, '📍 Show on Map ($1)'],
+    [/^⬇ CSV İndir \((\d+) kayıt\)$/, '⬇ Download CSV ($1 records)'],
+    [/^⬇ Filtrelenmiş CSV İndir \((\d+) kayıt\)$/, '⬇ Download Filtered CSV ($1 records)'],
+    [/^Yalnızca filtrelenmiş (\d+) kayıt indirilir$/, 'Only the $1 filtered records will be downloaded'],
+    [/^— Tümü \((\d+) havza\) —$/, '— All ($1 watersheds) —'],
+    [/^(\d+) havza filtrelendi$/, '$1 watersheds filtered'],
+    [/^Tüm havzalar \((\d+)\)$/, 'All watersheds ($1)'],
+    [/(\d+) havza seçili\./g, function (m, n) { return pl(n, 'watershed', 'watersheds') + ' selected.'; }],
+    [/(\d+) havza için CSV verisi yok\./g, function (m, n) { return 'No CSV data for ' + pl(n, 'watershed', 'watersheds') + '.'; }],
+    [/(\d+) havza için polygon henüz yüklenmedi\/bulunamadı\./g, function (m, n) { return 'Polygon not yet loaded/found for ' + pl(n, 'watershed', 'watersheds') + '.'; }],
+    [/^(\d+) nokta için CSV verisi bulunamadı$/, function (m, n) { return 'No CSV data found for ' + pl(n, 'point', 'points'); }],
+    [/^(\d+) nokta için havza sınırı henüz yüklenmedi$/, function (m, n) { return 'Watershed boundary not yet loaded for ' + pl(n, 'point', 'points'); }],
+    [/^(.+?) — (\d+) parametre, (\d+) gözlem$/, '$1 — $2 parameters, $3 observations'],
+    [/Kısmi Korelasyon \(Partial r\)/g, 'Partial Correlation (Partial r)'],
+    [/^✅ Hesaplandı \| 🔍 (.+) → (\d+) havza$/, '✅ Calculated | 🔍 $1 → $2 watersheds'],
+    [/^✅ Hesaplandı \| 📊 Tüm veri → (\d+) havza$/, '✅ Calculated | 📊 All data → $1 watersheds'],
+    [/DSİ Havza Kodu:/g, 'DSI Basin Code:'], [/DSİ Havzası:/g, 'DSI Basin:'],
+    [/\((Dereler|Yamaç Ortası Drenajları|Yüksek Arazi Drenajları|Vadiler|Düzlükler|Açık Yamaçlar|Üst Yamaçlar|Yerel Sırtlar|Yamaç Ortası Sırtları|Yüksek Sırtlar)\)/g, function (m, k) { return '(' + TPI[k] + ')'; }]
+  ];
+  function trText(s) {
+    if (typeof s !== 'string' || !s) return s;
+    var m = /^(\s*)([\s\S]*?)(\s*)$/.exec(s), key = m[2].replace(/\s+/g, ' ');
+    if (!key) return s;
+    if (D[key] !== undefined) return m[1] + D[key] + m[3];
+    if (!/[A-Za-zÇĞİÖŞÜçğıöşü]/.test(key)) return s;
+    var out = key;
+    for (var i = 0; i < RULES.length; i++) out = out.replace(RULES[i][0], RULES[i][1]);
+    return out === key ? s : m[1] + out + m[3];
+  }
+  window.trText = trText;
+  window.tt = function (s) { return window.LANG === 'en' ? trText(s) : s; };
+  var _alert = window.alert;
+  window.alert = function (m) { return _alert.call(window, window.LANG === 'en' ? String(m).split('\n').map(trText).join('\n') : m); };
+
+  var tS = new WeakMap(), aS = new WeakMap(), SKIP = '[data-i18n-skip],.leaflet-container,script,style,textarea,canvas,noscript';
+  function skipped(n) { var el = n.nodeType === 1 ? n : n.parentElement; return !!(el && el.closest && el.closest(SKIP)); }
+  function doText(n) {
+    var v = n.nodeValue; if (!/\S/.test(v)) return;
+    var st = tS.get(n), src = (st && v === st.cur) ? st.orig : v, out = window.LANG === 'en' ? trText(src) : src;
+    if (out !== v) n.nodeValue = out;
+    if (out !== src || st) tS.set(n, { orig: src, cur: out });
+  }
+  function doAttrs(el) {
+    var st = aS.get(el) || {};
+    for (var i = 0; i < ATTRS.length; i++) {
+      var a = ATTRS[i]; if (!el.hasAttribute(a)) continue;
+      var v = el.getAttribute(a), s = st[a], src = (s && v === s.cur) ? s.orig : v, out = window.LANG === 'en' ? trText(src) : src;
+      if (out !== v) el.setAttribute(a, out);
+      if (out !== src || s) { st[a] = { orig: src, cur: out }; aS.set(el, st); }
+    }
+  }
+  function walk(root) {
+    if (!root || skipped(root)) return;
+    if (root.nodeType === 3) return doText(root);
+    if (root.nodeType !== 1) return;
+    doAttrs(root);
+    var tw = document.createTreeWalker(root, 5, { acceptNode: function (n) {
+      return (n.nodeType === 1 && (n.hasAttribute('data-i18n-skip') || /^(SCRIPT|STYLE|TEXTAREA|CANVAS|NOSCRIPT)$/.test(n.tagName) || n.classList.contains('leaflet-container'))) ? 2 : 1; } });
+    var n; while ((n = tw.nextNode())) { if (n.nodeType === 3) doText(n); else doAttrs(n); }
+  }
+  var mo = new MutationObserver(function (recs) {
+    recs.forEach(function (r) {
+      if (r.type === 'childList') r.addedNodes.forEach(walk);
+      else if (!skipped(r.target)) { if (r.type === 'characterData') doText(r.target); else doAttrs(r.target); }
+    });
+  });
+  function observe() { mo.observe(document, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ATTRS }); }
+  function ui() {
+    ['tr', 'en'].forEach(function (l) { var b = document.getElementById('lang-btn-' + l); if (b) { b.classList.toggle('active', window.LANG === l); b.setAttribute('aria-pressed', String(window.LANG === l)); } });
+    var md = document.querySelector('meta[name="description"]');
+    if (md) { if (md._o === undefined) md._o = md.getAttribute('content'); md.setAttribute('content', window.LANG === 'en' ? (D[norm(md._o)] || md._o) : md._o); }
+  }
+  window.i18nApply = walk;
+  window.i18nSetLang = function (l) {
+    if (l !== 'tr' && l !== 'en') return;
+    var changed = l !== window.LANG;
+    window.LANG = l; document.documentElement.lang = l;
+    try { localStorage.setItem(LS, l); } catch (e) {}
+    mo.disconnect(); walk(document.documentElement); ui();
+    if (l === 'en') observe();
+    if (changed && window.onLanguageChange) { try { window.onLanguageChange(l); } catch (e) { console.warn('[i18n]', e); } }
+  };
+  if (lang === 'en') observe();
+  document.addEventListener('DOMContentLoaded', function () { if (window.LANG === 'en') walk(document.documentElement); ui(); });
+})();
+</script>
 </head>
 <body>
 <div id="splash" role="status" aria-live="polite">
@@ -842,6 +1056,7 @@
   <div class="sp-bar"><i id="splash-bar"></i></div>
   <div class="sp-sub" id="splash-text">Başlatılıyor…</div>
 </div>
+<script>window.i18nApply&&i18nApply(document.getElementById("splash"));</script>
 <script>
 /* Açılış animasyonu: yağış → yamaçlardan kollara toplanma → ana kol → çıkışta taşkın yayılımı */
 function spCore(cv,W,H,dpr,env,raf,still0){
@@ -1043,10 +1258,16 @@ function spCore(cv,W,H,dpr,env,raf,still0){
       <button onclick="showTab('download',this)"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5v8.3M4.7 7l3.3 3.3L11.3 7M2 13.2h12"/></svg> İndir</button>
       <button onclick="showTab('about',this)"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.3" stroke-width="1.4"/><path d="M8 7.3v4.2" stroke-width="1.4"/><path d="M8 4.9h.01" stroke-width="2.2"/></svg> Hakkında</button>
     </nav>
+    <div class="header-tools">
+    <div class="lang-switch" role="group" aria-label="Language / Dil">
+      <button type="button" id="lang-btn-tr" lang="tr" title="Türkçe" onclick="i18nSetLang('tr')">TR</button>
+      <button type="button" id="lang-btn-en" lang="en" title="English" onclick="i18nSetLang('en')">EN</button>
+    </div>
     <button id="theme-toggle-btn" onclick="toggleDarkMode()" title="Karanlık/aydınlık mod" aria-label="Tema değiştir">
       <svg id="theme-icon-moon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 9.3A6 6 0 116.7 2.5a5 5 0 006.8 6.8z"/></svg>
       <svg id="theme-icon-sun" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="8" cy="8" r="3.3"/><path d="M8 1.3v1.7M8 13v1.7M2.6 2.6l1.2 1.2M12.2 12.2l1.2 1.2M1.3 8h1.7M13 8h1.7M2.6 13.4l1.2-1.2M12.2 3.8l1.2-1.2"/></svg>
     </button>
+    </div>
   </div>
 </header>
 
@@ -1441,7 +1662,7 @@ function spCore(cv,W,H,dpr,env,raf,still0){
     <div class="section-title">Atıf / Kaynak Gösterme</div>
     <div class="cite-box">
       <button class="cite-copy" onclick="copyCite()">📋 Kopyala</button>
-      <span id="cite-text">Topsakal, M., Doğan, E., Yasak, S. S., &amp; Özdemir, H. (2026). Türkiye akarsu havzalarının Strahler metodu temelli morfometrik analizi. <em>Türk Coğrafya Dergisi</em>, (89), 141-156. <a href="https://doi.org/10.17211/tcd.1896223" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;">https://doi.org/10.17211/tcd.1896223</a></span>
+      <span id="cite-text" data-i18n-skip>Topsakal, M., Doğan, E., Yasak, S. S., &amp; Özdemir, H. (2026). Türkiye akarsu havzalarının Strahler metodu temelli morfometrik analizi. <em>Türk Coğrafya Dergisi</em>, (89), 141-156. <a href="https://doi.org/10.17211/tcd.1896223" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;">https://doi.org/10.17211/tcd.1896223</a></span>
     </div>
    </div>
   </div>
@@ -2285,9 +2506,8 @@ async function onPointClick(props, latlng, shiftKey) {
 
     const twoColBlock = morphHtml ? `<div class="wh-two-col">${morphHtml}</div>` : '';
 
-    const _kp = compositionHTML(getComposition(row, 'koppen'), 'İklim Sınıfları (Köppen-Geiger)', true);
-    const _lc = compositionHTML(getComposition(row, 'landcover'), 'Arazi Örtüsü / Kullanımı', true);
-    const koppenHtml = (_kp || _lc) ? `<div class="comp-two-col${(_kp && _lc) ? '' : ' single'}">${_kp}${_lc}</div>` : '';
+    const _ci = buildWsCompHTML(row);
+    const koppenHtml = _ci ? `<div id="wh-comp">${_ci}</div>` : '';
 
     whProps.innerHTML = (topHtml + twoColBlock + botHtml + koppenHtml)
       || '<span style="color:var(--text3);font-size:12px">Veri bulunamadı.</span>';
@@ -2464,6 +2684,7 @@ function buildShareURL() {
   const url = new URL(window.location.href);
   url.search = '';
   url.searchParams.set(SHARE_SEL_PARAM, ids.join(','));
+  if (LANG === 'en') url.searchParams.set('lang', 'en');
   return url.toString();
 }
 
@@ -2614,7 +2835,7 @@ function downloadSelectionAsExcel() {
 
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Havza Verisi');
+  XLSX.utils.book_append_sheet(wb, ws, tt('Havza Verisi'));
 
   const fname = entries.length === 1
     ? `havza_${sanitizeFilename(entries[0].label)}.xlsx`
@@ -2979,8 +3200,8 @@ function renderMultiSelectSummary() {
   const parts = [];
   if (areaCount > 0) {
     const avg = areaSum / areaCount;
-    parts.push(`<span><strong>${areaSum.toLocaleString('tr', {maximumFractionDigits: 1})}</strong> km² toplam</span>`);
-    parts.push(`<span><strong>${avg.toLocaleString('tr', {maximumFractionDigits: 1})}</strong> km² ortalama</span>`);
+    parts.push(`<span><strong>${areaSum.toLocaleString(LOC(), {maximumFractionDigits: 1})}</strong> km² toplam</span>`);
+    parts.push(`<span><strong>${avg.toLocaleString(LOC(), {maximumFractionDigits: 1})}</strong> km² ortalama</span>`);
   }
   if (csvMatched < n) {
     parts.push(`<span class="mss-warn">${n - csvMatched} nokta için CSV verisi bulunamadı</span>`);
@@ -3617,6 +3838,9 @@ function koppenTR(code) {
   return `${g}, ${dry}, ${sum}`;
 }
 
+const KOPPEN_EN = {}; Object.values(KOPPEN_CLASSES).forEach(c => { KOPPEN_EN[c.code] = c.desc; });
+function koppenEN(code) { return KOPPEN_EN[String(code).replace(/_.*$/, '')] || ''; }
+
 const LC_RULES = [
   [/no ?data|unknown|bilinmey|tanimsiz|unclass|siniflandirilmam/, '#cccccc'],
   [/cloud|bulut/, '#616161'],
@@ -3644,7 +3868,8 @@ function _mixWhite(hex, t) {
   const f = v => Math.round(v + (255 - v) * t).toString(16).padStart(2, '0');
   return '#' + f(n >> 16) + f((n >> 8) & 255) + f(n & 255);
 }
-function _fmtPct(p) { return p < 0.1 ? '<0,1' : p.toFixed(1).replace('.', ','); }
+function _fmtPct(p) { const d = LANG === 'en' ? '.' : ','; return p < 0.1 ? '<0' + d + '1' : p.toFixed(1).replace('.', d); }
+function _pct(p) { return LANG === 'en' ? _fmtPct(p) + '%' : '%' + _fmtPct(p); }
 
 let _compScaleCache = {};
 function _compScale(origin) {
@@ -3673,7 +3898,7 @@ function getComposition(row, origin) {
     if (origin === 'koppen') {
       const code = it.key.replace(/_.*$/, '');
       it.short = code;
-      it.label = `${code} — ${koppenTR(code) || (koppenDescByCode[it.key] || '')}`.replace(/ — $/, '');
+      it.label = `${code} — ${(LANG === 'en' ? koppenEN(code) : koppenTR(code)) || (koppenDescByCode[it.key] || '')}`.replace(/ — $/, '');
       base = KOPPEN_COLORS[code];
     } else {
       it.short = it.label = String(it.key).replace(/_/g, ' ');
@@ -3693,16 +3918,16 @@ function _groupComp(comp, minShare) {
   minShare = minShare == null ? 1 : minShare;
   const big = comp.items.filter(i => i.pct >= minShare);
   const small = comp.items.filter(i => i.pct < minShare);
-  const out = big.map(i => ({ label: i.label, short: i.short, pct: i.pct, color: i.color, tip: `${i.label}: %${_fmtPct(i.pct)}` }));
+  const out = big.map(i => ({ label: i.label, short: i.short, pct: i.pct, color: i.color, tip: `${i.label}: ${_pct(i.pct)}` }));
   if (small.length === 1) {
     const i = small[0];
-    out.push({ label: i.label, short: i.short, pct: i.pct, color: i.color, tip: `${i.label}: %${_fmtPct(i.pct)}` });
+    out.push({ label: i.label, short: i.short, pct: i.pct, color: i.color, tip: `${i.label}: ${_pct(i.pct)}` });
   } else if (small.length > 1) {
-    out.push({ label: `Diğer (${small.length} sınıf)`, short: 'Diğer', pct: small.reduce((a, b) => a + b.pct, 0), color: '#9a9a9a',
-               tip: small.map(i => `${i.label}: %${_fmtPct(i.pct)}`).join('\n') });
+    out.push({ label: LT(`Diğer (${small.length} sınıf)`, `Other (${small.length} classes)`), short: LT('Diğer', 'Other'), pct: small.reduce((a, b) => a + b.pct, 0), color: '#9a9a9a',
+               tip: small.map(i => `${i.label}: ${_pct(i.pct)}`).join('\n') });
   }
   const rem = 100 - comp.total;
-  if (rem >= 0.5) out.push({ label: 'Sınıflandırılmamış', short: 'Sınıfsız', pct: rem, color: '#e3e0d8', tip: 'Bu havzada sınıflandırılamayan alan' });
+  if (rem >= 0.5) out.push({ label: LT('Sınıflandırılmamış', 'Unclassified'), short: LT('Sınıfsız', 'Unclass.'), pct: rem, color: '#e3e0d8', tip: LT('Bu havzada sınıflandırılamayan alan', 'Area that could not be classified in this watershed') });
   return out;
 }
 function _barHTML(items, total) {
@@ -3716,13 +3941,18 @@ function compositionHTML(comp, title, compact) {
   return `<div class="comp-block"><div class="comp-title"><span>${escapeHtml(title)}</span></div>`
     + _barHTML(items, comp.total)
     + '<div class="comp-legend">' + items.map(i =>
-        `<div class="comp-row" title="${escapeHtml(i.tip)}"><i style="background:${i.color}"></i><span class="comp-name">${escapeHtml(compact ? i.short : i.label)}</span><b>%${_fmtPct(i.pct)}</b></div>`).join('')
+        `<div class="comp-row" title="${escapeHtml(i.tip)}"><i style="background:${i.color}"></i><span class="comp-name">${escapeHtml(compact ? i.short : i.label)}</span><b>${_pct(i.pct)}</b></div>`).join('')
     + '</div></div>';
+}
+function buildWsCompHTML(row) {
+  const _kp = compositionHTML(getComposition(row, 'koppen'), 'İklim Sınıfları (Köppen-Geiger)', true);
+  const _lc = compositionHTML(getComposition(row, 'landcover'), 'Arazi Örtüsü / Kullanımı', true);
+  return (_kp || _lc) ? `<div class="comp-two-col${(_kp && _lc) ? '' : ' single'}">${_kp}${_lc}</div>` : '';
 }
 function compositionMiniHTML(comp) {
   if (!comp) return '–';
   const items = _groupComp(comp, 1);
-  const top = items.slice(0, 3).map(i => `${escapeHtml(i.short)} %${_fmtPct(i.pct)}`).join(' · ');
+  const top = items.slice(0, 3).map(i => `${escapeHtml(i.short)} ${_pct(i.pct)}`).join(' · ');
   return `<div class="comp-mini" style="text-align:left;min-width:150px">${_barHTML(items, comp.total)}<div class="comp-mini-txt">${top}${items.length > 3 ? ` · +${items.length - 3}` : ''}</div></div>`;
 }
 
@@ -3752,16 +3982,16 @@ function _drawProfilePanel(prefix, comp, origin) {
       responsive: true, maintainAspectRatio: false, cutout: '55%',
       plugins: {
         legend: { position: 'right', labels: { color: txt, boxWidth: 11, font: { size: 11 },
-          generateLabels: c => items.map((i, n) => ({ text: `${i.short}  %${_fmtPct(i.pct)}`, fillStyle: i.color, strokeStyle: i.color,
+          generateLabels: c => items.map((i, n) => ({ text: `${i.short}  ${_pct(i.pct)}`, fillStyle: i.color, strokeStyle: i.color,
                                                        lineWidth: 0, fontColor: txt, hidden: !c.getDataVisibility(n), index: n })) } },
-        tooltip: { callbacks: { label: c => ` ${c.label}: %${_fmtPct(c.parsed)}` } }
+        tooltip: { callbacks: { label: c => ` ${c.label}: ${_pct(c.parsed)}` } }
       }
     }
   });
   _profCharts[canvasId] = ch;
   _registerChart(canvasId, ch);
   legendEl.innerHTML = '<div class="comp-legend">' + items.map(i =>
-    `<div class="comp-row" title="${escapeHtml(i.tip)}"><i style="background:${i.color}"></i><span class="comp-name">${escapeHtml(i.label)}</span><b>%${_fmtPct(i.pct)}</b></div>`).join('')
+    `<div class="comp-row" title="${escapeHtml(i.tip)}"><i style="background:${i.color}"></i><span class="comp-name">${escapeHtml(i.label)}</span><b>${_pct(i.pct)}</b></div>`).join('')
     + '</div>';
 }
 
@@ -3770,7 +4000,7 @@ function showProfile(row) {
   const wid = row['WID'] ?? row['Havza_Ad'] ?? '';
   const parts = [];
   if (row['Havza_Ad']) parts.push(escapeHtml(row['Havza_Ad']));
-  if (typeof row['area_km2'] === 'number') parts.push(escapeHtml(row['area_km2'].toFixed(2).replace('.', ',')) + ' km²');
+  if (typeof row['area_km2'] === 'number') parts.push(escapeHtml(row['area_km2'].toFixed(2).replace('.', LANG === 'en' ? '.' : ',')) + ' km²');
   document.getElementById('prof-title').innerHTML = `WID: ${escapeHtml(wid)}<small>${parts.join(' · ')}</small>`;
   document.getElementById('prof-msg').textContent = '';
   _drawProfilePanel('clim', getComposition(row, 'koppen'), 'koppen');
@@ -3966,7 +4196,7 @@ function applyMergedTable(rows, headers) {
     rows.forEach(r => { watershedById[String(r[oidKey])] = r; });
   }
 
-  document.getElementById('stat-watersheds').textContent = rows.length.toLocaleString('tr');
+  document.getElementById('stat-watersheds').textContent = rows.length.toLocaleString(LOC());
   document.getElementById('stat-fields').textContent = headers.length;
 
   buildTable();
@@ -4686,11 +4916,11 @@ function updateCatChart() {
   if (catChart) catChart.destroy();
   catChart = new Chart(document.getElementById('chart-cat'), {
     type: 'pie',
-    data: { labels, datasets: [{ data: vals, backgroundColor: colors.slice(0,labels.length), borderWidth:0 }] },
+    data: { labels: labels.map(tt), datasets: [{ data: vals, backgroundColor: colors.slice(0,labels.length), borderWidth:0 }] },
     options: {
       plugins: {
         legend: { position:'bottom', labels:{ font:{ size:10 }, padding:8 } },
-        title: { display: true, text: `Kategorik Dağılım — ${catChartLabel(field)}`, font: { size: 14, weight: 'bold', family: 'sans-serif' }, padding: { bottom: 10 } }
+        title: { display: true, text: `${tt('Kategorik Dağılım')} — ${tt(catChartLabel(field))}`, font: { size: 14, weight: 'bold', family: 'sans-serif' }, padding: { bottom: 10 } }
       }
     }
   });
@@ -4727,11 +4957,11 @@ function updateHistChart() {
     options: {
       plugins: {
         legend: { display: false },
-        title: { display: true, text: `Histogram — ${fieldLabel(field)}`, font: { size: 14, weight: 'bold', family: 'sans-serif' }, padding: { bottom: 10 } }
+        title: { display: true, text: `Histogram — ${tt(fieldLabel(field))}`, font: { size: 14, weight: 'bold', family: 'sans-serif' }, padding: { bottom: 10 } }
       },
       scales: {
-        y: { beginAtZero: true, title: { display: true, text: 'Frekans', font: { size: 12 } } },
-        x: { ticks: { font: { size: 9 }, maxRotation: 45 }, title: { display: true, text: fieldLabel(field), font: { size: 12 } } }
+        y: { beginAtZero: true, title: { display: true, text: tt('Frekans'), font: { size: 12 } } },
+        x: { ticks: { font: { size: 9 }, maxRotation: 45 }, title: { display: true, text: tt(fieldLabel(field)), font: { size: 12 } } }
       }
     }
   });
@@ -4786,10 +5016,10 @@ function updateScatterChart() {
   // r ve eğilim çizgisi seçili veri grubunun tamamından hesaplanır; sadece çizilen noktalar örneklenir
   const xs = sample.map(r=>r[xF]); const ys = sample.map(r=>r[yF]);
   const r  = pearsonR(xs, ys);
-  const nAll = sample.length.toLocaleString('tr');
+  const nAll = sample.length.toLocaleString(LOC());
   document.getElementById('scatter-corr').textContent = pts.length < sample.length
-    ? `Pearson r = ${r.toFixed(4)}  |  ${nAll} gözlemden ${pts.length.toLocaleString('tr')} rastgele nokta gösteriliyor`
-    : `Pearson r = ${r.toFixed(4)}  |  ${nAll} nokta gösteriliyor`;
+    ? LT(`Pearson r = ${r.toFixed(4)}  |  ${nAll} gözlemden ${pts.length.toLocaleString(LOC())} rastgele nokta gösteriliyor`, `Pearson r = ${r.toFixed(4)}  |  showing ${pts.length.toLocaleString(LOC())} random points out of ${nAll} observations`)
+    : LT(`Pearson r = ${r.toFixed(4)}  |  ${nAll} nokta gösteriliyor`, `Pearson r = ${r.toFixed(4)}  |  showing ${nAll} points`);
 
   let datasets;
   if (cF) {
@@ -4803,7 +5033,7 @@ function updateScatterChart() {
       groupRows[cat].push(row);
     });
     const mk = ([cat,data], color) => ({
-      label: cat, data,
+      label: tt(cat), data,
       _rows: groupRows[cat],
       backgroundColor: color + '99',
       pointRadius:3, pointHoverRadius:6
@@ -4828,7 +5058,7 @@ function updateScatterChart() {
     let xMin = xs[0], xMax = xs[0];
     for (let i = 1; i < n; i++) { if (xs[i] < xMin) xMin = xs[i]; if (xs[i] > xMax) xMax = xs[i]; }
     datasets.push({
-      label: 'Eğilim Çizgisi',
+      label: tt('Eğilim Çizgisi'),
       data: [{ x: xMin, y: slope*xMin+intercept }, { x: xMax, y: slope*xMax+intercept }],
       type: 'line',
       borderColor: '#a33b2e',
@@ -4865,7 +5095,7 @@ function updateScatterChart() {
               }
               lines.push(`${xF}: ${xVal}`);
               lines.push(`${yF}: ${yVal}`);
-              lines.push('(haritada görmek için çift tıkla)');
+              lines.push(tt('(haritada görmek için çift tıkla)'));
               return lines;
             }
           }
@@ -4974,7 +5204,7 @@ function updateBoxPlot() {
       labels: labels.map(l => `Strahler ${l}`),
       datasets: [
         {
-          label: 'Ortalama',
+          label: tt('Ortalama'),
           data: statsArr.map(s => s ? s.mean : 0),
           backgroundColor: colors.slice(0, labels.length).map(c => c + 'bb'),
           borderColor: colors.slice(0, labels.length),
@@ -4983,7 +5213,7 @@ function updateBoxPlot() {
           order: 2,
         },
         {
-          label: 'Medyan',
+          label: tt('Medyan'),
           data: statsArr.map(s => s ? s.median : 0),
           type: 'line',
           borderColor: '#a33b2e',
@@ -5003,10 +5233,10 @@ function updateBoxPlot() {
       interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: { display: true, position: 'bottom' },
-        title: { display: true, text: `Bar Graph — ${field} (Strahler Sırasına Göre)`, font: { size: 14, weight: 'bold', family: 'sans-serif' }, padding: { bottom: 4 } },
+        title: { display: true, text: `Bar Graph — ${field} (${tt('Strahler Sırasına Göre')})`, font: { size: 14, weight: 'bold', family: 'sans-serif' }, padding: { bottom: 4 } },
         subtitle: {
           display: true,
-          text: 'Çubuklar → Ortalama (Mean)   |   Kırmızı çizgi → Medyan (Median)',
+          text: tt('Çubuklar → Ortalama (Mean)   |   Kırmızı çizgi → Medyan (Median)'),
           color: '#5a5752',
           font: { size: 11, style: 'italic', family: 'sans-serif' },
           padding: { bottom: 8 }
@@ -5019,8 +5249,8 @@ function updateBoxPlot() {
               const s = statsArr[i];
               if (!s) return [];
               return [
-                `Ortalama : ${s.mean.toFixed(3)}`,
-                `Medyan   : ${s.median.toFixed(3)}`,
+                `${tt('Ortalama')} : ${s.mean.toFixed(3)}`,
+                `${tt('Medyan')} : ${s.median.toFixed(3)}`,
                 `─────────────────`,
                 `Min : ${s.min.toFixed(3)}`,
                 `Max : ${s.max.toFixed(3)}`,
@@ -5898,7 +6128,7 @@ async function downloadMapAsImage() {
       ctx.font = `700 ${11 * SCALE}px sans-serif`;
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText('LEJANT', lx + pad, ty);
+      ctx.fillText(tt('LEJANT'), lx + pad, ty);
       ty += 18 * SCALE;
 
       // Havza sınırı
@@ -5909,7 +6139,7 @@ async function downloadMapAsImage() {
       ctx.strokeRect(lx + pad, ty - sw + 3 * SCALE, sw, sw);
       ctx.fillStyle = '#222';
       ctx.font = `${12 * SCALE}px sans-serif`;
-      ctx.fillText('Havza Sınırı', lx + pad + sw + 7 * SCALE, ty);
+      ctx.fillText(tt('Havza Sınırı'), lx + pad + sw + 7 * SCALE, ty);
       ty += 20 * SCALE;
 
       // Mansap noktası
@@ -5918,7 +6148,7 @@ async function downloadMapAsImage() {
       ctx.fillStyle = '#9c5a34';
       ctx.fill();
       ctx.fillStyle = '#222';
-      ctx.fillText('Mansap Noktası', lx + pad + sw + 7 * SCALE, ty);
+      ctx.fillText(tt('Mansap Noktası'), lx + pad + sw + 7 * SCALE, ty);
 
       // Akarsular (Strahler)
       if (riverOn) {
@@ -5932,7 +6162,7 @@ async function downloadMapAsImage() {
         ctx.stroke();
         ctx.fillStyle = '#222';
         ctx.font = `${12 * SCALE}px sans-serif`;
-        ctx.fillText('Akarsular (Strahler)', lx + pad + sw + 7 * SCALE, ty);
+        ctx.fillText(tt('Akarsular (Strahler)'), lx + pad + sw + 7 * SCALE, ty);
 
         ty += 17 * SCALE;
         ctx.font = `${10 * SCALE}px sans-serif`;
@@ -6174,7 +6404,7 @@ async function autoLoad() {
         const d = await r.json();
         renderPoints(d);
         const c = (pointGeoJSON && pointGeoJSON.features || []).length;
-        document.getElementById('stat-points').textContent = c.toLocaleString('tr');
+        document.getElementById('stat-points').textContent = c.toLocaleString(LOC());
       }
     },
   ];
@@ -6295,10 +6525,66 @@ const TECH_META = {
   ]
 };
 
+const TECH_META_EN = {
+  title: 'Türkiye Watershed Morphometry Dataset',
+  abstract: "A geospatial dataset containing morphometric parameters of Türkiye's river basins and drainage networks.",
+  version: '2.0', metadataDate: '2026-10-01', language: 'eng', doi: '10.17211/tcd.1896223', license: 'CC BY 4.0',
+  bbox: { west: 23.6, east: 46.0, south: 33.7, north: 42.9 },
+  sections: [
+    { title: 'Dataset Identity', open: true, rows: [
+      ['Title', 'Türkiye Watershed Morphometry Dataset'],
+      ['Abstract', "Morphometric parameters of Türkiye's river basins and drainage networks."],
+      ['Version', '2.0 · You can follow version updates on Zenodo.', 'https://zenodo.org/records/15626608'],
+      ['Last updated', '1 October 2026'],
+      ['Identifier (DOI)', '10.17211/tcd.1896223', 'https://doi.org/10.17211/tcd.1896223'],
+      ['Subject', 'Watershed morphometry, river basin database'],
+      ['Production tool', 'HydroMachine (ArcGIS)', 'https://github.com/Geographer16/HydroMachine']
+    ]},
+    { title: 'Geographic Location and Extent', rows: [
+      ['Extent', "Hydrological boundaries of Türkiye. Because watershed boundaries can cross administrative borders, the extent does not exactly match the administrative boundary."],
+      ['Bounding box', 'West 23.6° E · East 46.0° E · South 33.7° N · North 42.9° N (approx.)'],
+      ['Number of watersheds', '142,654']
+    ]},
+    { title: 'Source Data and Resolution', rows: [
+      ['Elevation', 'FABDEM V1-2 (2023) · 30 m'],
+      ['Land cover', 'Esri land cover/land use (2025) · 10 m'],
+      ['Climate', 'Köppen-Geiger classification (1991–2020) · 1 km'],
+      ['Curve Number (CN)', 'GCN250 (Jaafar et al., 2019) · 250 m', 'https://doi.org/10.1038/s41597-019-0155-x']
+    ]},
+    { title: 'Coordinate Reference System', rows: [
+      ['Processing system', 'TUREF / TM36 (EPSG:5256)'],
+      ['Web display', 'WGS84 (EPSG:4326)']
+    ]},
+    { title: 'Quality and Lineage', rows: [
+      ['Production method', 'Morphometric parameters were computed automatically with HydroMachine.'],
+      ['Method and accuracy', 'See the dataset paper for details.', 'https://doi.org/10.17211/tcd.1896223'],
+      ['Production tool paper', 'HydroMachine', 'https://doi.org/10.1007/s12665-025-12352-8'],
+      ['Curve Number (CN) source', 'GCN250 is a global dataset derived by combining ESA CCI land cover (2015) with the HYSOGs250m hydrologic soil group data.']
+    ]},
+    { title: 'Access and Use Constraints', rows: [
+      ['License', 'CC BY 4.0', 'https://creativecommons.org/licenses/by/4.0/deed.en'],
+      ['Use constraints', 'No additional restrictions beyond the license.'],
+      ['Citation', 'Please cite the paper.', 'https://doi.org/10.17211/tcd.1896223']
+    ]},
+    { title: 'Distribution', rows: [
+      ['Formats', 'SHP, GeoJSON, CSV'],
+      ['Platforms', 'GitHub and Zenodo'],
+      ['GitHub', 'Turkiye-Havza-Morfometrisi-Veri-Seti', 'https://github.com/Geographer16/Turkiye-Havza-Morfometrisi-Veri-Seti'],
+      ['Zenodo', 'zenodo.org/records/15626608', 'https://zenodo.org/records/15626608']
+    ]},
+    { title: 'Metadata Information', rows: [
+      ['Metadata date', '1 October 2026'],
+      ['Metadata language', 'English'],
+      ['Contact', 'See the Contact section below.']
+    ]}
+  ]
+};
+function techMeta() { return LANG === 'en' ? TECH_META_EN : TECH_META; }
+
 function renderTechMeta() {
   const el = document.getElementById('tech-meta');
   if (!el) return;
-  el.innerHTML = TECH_META.sections.map(sec => {
+  el.innerHTML = techMeta().sections.map(sec => {
     const rows = sec.rows.map(r => {
       const v = r[2] ? `<a href="${escapeHtml(r[2])}" target="_blank" rel="noopener">${escapeHtml(r[1])}</a>` : escapeHtml(r[1]);
       return `<dt>${escapeHtml(r[0])}</dt><dd>${v}</dd>`;
@@ -6318,11 +6604,11 @@ function renderTechMeta() {
 
 function _xmlEsc(v) { return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function buildMetadataXml() {
-  const m = TECH_META, b = m.bbox;
+  const m = techMeta(), b = m.bbox;
   const cs = t => `<gco:CharacterString>${_xmlEsc(t)}</gco:CharacterString>`;
   const dec = v => `<gco:Decimal>${v}</gco:Decimal>`;
   return `<?xml version="1.0" encoding="UTF-8"?>
-<!-- Temel metaveri elemanları (ISO 19115/19139 yapısı). Resmî TUCBS Metaveri Editörü'ne aktarmadan önce eksik alanlar tamamlanmalıdır. -->
+<!-- ${LT("Temel metaveri elemanları (ISO 19115/19139 yapısı). Resmî TUCBS Metaveri Editörü'ne aktarmadan önce eksik alanlar tamamlanmalıdır.", "Basic metadata elements (ISO 19115/19139 structure). Missing fields must be completed before importing into the official TUCBS Metadata Editor.")} -->
 <gmd:MD_Metadata xmlns:gmd="http://www.isotc211.org/2005/gmd" xmlns:gco="http://www.isotc211.org/2005/gco">
   <gmd:language><gmd:LanguageCode codeList="http://www.loc.gov/standards/iso639-2/" codeListValue="${m.language}">${m.language}</gmd:LanguageCode></gmd:language>
   <gmd:dateStamp><gco:Date>${m.metadataDate}</gco:Date></gmd:dateStamp>
@@ -6359,10 +6645,18 @@ function downloadMetadata(kind) {
   if (kind === 'xml') {
     triggerBlobDownload(new Blob([buildMetadataXml()], { type: 'application/xml;charset=utf-8' }), 'havza_metaveri.xml');
   } else {
-    triggerBlobDownload(new Blob([JSON.stringify(TECH_META, null, 2)], { type: 'application/json;charset=utf-8' }), 'havza_metaveri.json');
+    triggerBlobDownload(new Blob([JSON.stringify(techMeta(), null, 2)], { type: 'application/json;charset=utf-8' }), 'havza_metaveri.json');
   }
 }
 renderTechMeta();
+
+window.onLanguageChange = function () {
+  try { renderTechMeta(); } catch (e) {}
+  try { if (csvData.length && document.getElementById('chart-hist-sel').options.length) { updateHistChart(); updateCatChart(); updateScatterChart(); updateBoxPlot(); } } catch (e) { console.warn(e); }
+  try { if (_profRow) showProfile(_profRow); } catch (e) {}
+  try { if (selectedPoints.length) updateMultiSelectUI(); } catch (e) {}
+  try { const w = document.getElementById('wh-comp'); if (w && singleSelection && singleSelection.csvRow) w.innerHTML = buildWsCompHTML(singleSelection.csvRow); } catch (e) {}
+};
 
 const _mobileMQ = window.matchMedia('(max-width: 700px)');
 function mobileSheet(open) {
