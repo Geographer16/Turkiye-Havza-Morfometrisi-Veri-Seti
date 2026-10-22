@@ -1323,7 +1323,7 @@ function spCore(cv,W,H,dpr,env,raf,still0){
       <button type="button" id="lang-btn-tr" lang="tr" title="Türkçe" onclick="i18nSetLang('tr')">TR</button>
       <button type="button" id="lang-btn-en" lang="en" title="English" onclick="i18nSetLang('en')">EN</button>
     </div>
-    <button id="help-btn" onclick="openWelcome()" title="Nasıl kullanılır?" aria-label="Nasıl kullanılır?">?</button>
+    <button id="help-btn" onclick="openV2Notice(true)" title="Nasıl kullanılır?" aria-label="Nasıl kullanılır?">?</button>
     <button id="theme-toggle-btn" onclick="toggleDarkMode()" title="Karanlık/aydınlık mod" aria-label="Tema değiştir">
       <svg id="theme-icon-moon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 9.3A6 6 0 116.7 2.5a5 5 0 006.8 6.8z"/></svg>
       <svg id="theme-icon-sun" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="8" cy="8" r="3.3"/><path d="M8 1.3v1.7M8 13v1.7M2.6 2.6l1.2 1.2M12.2 12.2l1.2 1.2M1.3 8h1.7M13 8h1.7M2.6 13.4l1.2-1.2M12.2 3.8l1.2-1.2"/></svg>
@@ -2764,22 +2764,22 @@ function closeWelcome() {
     if (document.getElementById('welcome-dont-show').checked) localStorage.setItem('thm-welcome-seen', '1');
   } catch (e) {}
 }
-function openV2Notice() {
+let _v2ChainWelcome = true;
+function openV2Notice(chain) {
+  _v2ChainWelcome = chain !== false;
   document.getElementById('v2-overlay').classList.add('visible');
 }
-function closeV2Notice() {
+function closeV2Notice(next) {
   document.getElementById('v2-overlay').classList.remove('visible');
   try { localStorage.setItem('thm-v2-notice-seen', '1'); } catch (e) {}
-  let seen = false;
-  try { seen = localStorage.getItem('thm-welcome-seen') === '1'; } catch (e) {}
-  if (!seen && !new URLSearchParams(location.search).has('sel')) openWelcome();
+  if (next === true && _v2ChainWelcome) openWelcome();
 }
 function showWelcomeOnce() {
   if (new URLSearchParams(location.search).has('sel')) return;
   let welcomeSeen = false, v2Seen = false;
   try { welcomeSeen = localStorage.getItem('thm-welcome-seen') === '1'; } catch (e) {}
   try { v2Seen = localStorage.getItem('thm-v2-notice-seen') === '1'; } catch (e) {}
-  if (!v2Seen) openV2Notice();
+  if (!v2Seen) openV2Notice(!welcomeSeen);
   else if (!welcomeSeen) openWelcome();
 }
 
@@ -6876,7 +6876,7 @@ function mobileRevealPoint(latlng) {
       <li>Veri, HydroMachine v2 ile hesaplanmıştır. HydroMachine v2 henüz yayımlanmamıştır; gerekli testler ve son düzeltmelerden geçirildikten sonra erişime açılacaktır.</li>
     </ul>
     <p id="v2-note">Bu yeni yaklaşım gereği jeoloji ve litoloji verisi henüz eklenmemiştir.</p>
-    <div id="v2-foot"><button id="v2-ok" onclick="closeV2Notice()">Anladım</button></div>
+    <div id="v2-foot"><button id="v2-ok" onclick="closeV2Notice(true)">Anladım</button></div>
   </div>
 </div>
 <div id="welcome-overlay" onclick="if(event.target===this) closeWelcome()">
