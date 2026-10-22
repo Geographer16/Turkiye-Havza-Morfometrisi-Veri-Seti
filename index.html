@@ -627,7 +627,6 @@
     #map-wid-suggestions { left:0 !important; right:0 !important; min-width:0 !important; }
     .map-card .card-header button, .map-card .card-header select { min-height:38px; }
 
-    /* Lejant ve bildirimler haritanın gerçek alt köşesine sabit; alt çekmece için boşluk .map-layout padding-bottom ile sağlanıyor */
     .map-inline-legend { right:6px; bottom:20px; max-width:calc(100% - 12px); }
     #map-wid-search-msg { bottom:20px; }
     .leaflet-touch .leaflet-bar a { width:40px; height:40px; line-height:40px; }
@@ -656,7 +655,6 @@
     .col-resize-handle { width:18px; }
     .tab-inner { padding:10px 10px; }
 
-    /* İndir sekmesi */
     .dl-grid { grid-template-columns:1fr; }
     .dl-card { min-width:0; padding:16px; }
     .dl-card p, .dl-meta { overflow-wrap:anywhere; }
@@ -665,7 +663,6 @@
     .cite-box { padding:14px; font-size:13.5px; }
     .cite-copy { position:static; display:block; margin:0 0 10px auto; min-height:34px; }
 
-    /* Hakkında sekmesi */
     .about-grid { gap:14px; }
     .about-grid > div { min-width:0; }
     .about-card { padding:16px; }
@@ -844,10 +841,9 @@
   })();
 </script>
 <script>
-/* TR / EN dil desteği: sözlük + DOM çevirici. Varsayılan dil: kayıtlı tercih > ?lang= > tarayıcı dili */
 (function () {
   'use strict';
-  var LS = 'thm-lang', ATTRS = ['title', 'placeholder', 'aria-label', 'label', 'alt'];
+  var LS = 'thm-lang', ATTRS = ['title', 'placeholder', 'aria-label', 'label'];
   var lang = 'tr';
   try {
     var qp = new URLSearchParams(location.search).get('lang'), sv = null;
@@ -929,7 +925,6 @@
 ["Filtrelenmiş kayıtlar için haritada eşleşen nokta bulunamadı.","No matching points on the map for the filtered records."],["Seçili havza(lar) için polygon verisi bulunamadı.","No polygon data found for the selected watershed(s)."],
 ["Excel kütüphanesi yüklenemedi (XLSX). İnternet bağlantınızı kontrol edin.","The Excel library (XLSX) could not be loaded. Check your internet connection."],
 ["Havza Verisi","Watershed Data"],["Sınır Dışı","Outside Border"],
-["Seçili havza(lar) için polygon verisi bulunamadı. Önce polygon klasörünü yükleyin.","No polygon data found for the selected watershed(s). Load the polygon folder first."],
 ["Önce polygon klasörünü yükleyin.","Load the polygon folder first."],
 ["Shapefile kütüphanesi yüklenemedi. GeoJSON formatını deneyin.","The Shapefile library could not be loaded. Try the GeoJSON format."],
 ["GeoJSON formatını deneyin.","Try the GeoJSON format."],
@@ -1058,7 +1053,6 @@
 </div>
 <script>window.i18nApply&&i18nApply(document.getElementById("splash"));</script>
 <script>
-/* Açılış animasyonu: yağış → yamaçlardan kollara toplanma → ana kol → çıkışta taşkın yayılımı */
 function spCore(cv,W,H,dpr,env,raf,still0){
   var ctx=cv.getContext('2d'), stopped=false;
   cv.width=W*dpr; cv.height=H*dpr; ctx.scale(dpr,dpr);
@@ -1115,11 +1109,9 @@ function spCore(cv,W,H,dpr,env,raf,still0){
     ctx.clearRect(0,0,W,H);
     ctx.lineCap='round'; ctx.lineJoin='round'; ctx.setLineDash([]);
 
-    /* havza zemini */
     ctx.globalAlpha=g;
     ctx.fillStyle='rgba('+wc+','+(0.04+0.08*vol)+')'; ctx.fill(basin);
 
-    /* taşkın yayılımı */
     if(f>0.01){
       var gr=ctx.createRadialGradient(OX,OY,4,OX,OY+40,190*f+10);
       gr.addColorStop(0,'rgba('+wc+',0.6)'); gr.addColorStop(1,'rgba('+wc+',0.16)');
@@ -1135,13 +1127,11 @@ function spCore(cv,W,H,dpr,env,raf,still0){
       ctx.setLineDash([]);
     }
 
-    /* akarsu ağı */
     ctx.strokeStyle='rgba('+wc+','+(0.2+0.4*vol)+')'; ctx.lineWidth=0.6+1.6*vol;
     routes.forEach(function(r){ctx.stroke(r.path);});
     ctx.strokeStyle='rgba('+wc+','+(0.35+0.5*vol)+')'; ctx.lineWidth=1.4+3.4*vol; ctx.stroke(mainPath);
 
     if(!still){
-      /* damlalar */
       dAcc+=rain*90*dt;
       while(dAcc>=1){dAcc--; var lp=randInBasin(); if(lp) drops.push({x:lp[0]+28,y:lp[1]-120,lx:lp[0],ly:lp[1]});}
       ctx.strokeStyle='rgba('+rc+',0.75)'; ctx.lineWidth=1;
@@ -1156,7 +1146,6 @@ function spCore(cv,W,H,dpr,env,raf,still0){
         ctx.strokeStyle='rgba('+rc+','+(0.8*(1-rp.r/7))+')'; ctx.lineWidth=0.8;
         ctx.beginPath(); ctx.ellipse(rp.x,rp.y,rp.r,rp.r*0.45,0,0,6.2832); ctx.stroke();
       }
-      /* akan su zerrecikleri */
       pAcc+=34*vol*(0.35+0.65*rain)*dt;
       while(pAcc>=1&&parts.length<320){pAcc--; parts.push({r:routes[Math.floor(Math.random()*routes.length)],i:Math.random()*6,k:0.8+Math.random()*0.5});}
       pAcc=Math.min(pAcc,3);
@@ -1172,7 +1161,6 @@ function spCore(cv,W,H,dpr,env,raf,still0){
       ctx.fill();
     }
 
-    /* havza sınırı */
     ctx.strokeStyle=accent; ctx.globalAlpha=g*0.6; ctx.lineWidth=1.4; ctx.stroke(basin);
     ctx.globalAlpha=1;
   }
@@ -1192,8 +1180,6 @@ function spCore(cv,W,H,dpr,env,raf,still0){
   return {stop:function(){stopped=true;}, setEnv:function(e){env.dark=e.dark; env.accent=e.accent;}};
 }
 
-/* Animasyon ana thread yerine Web Worker + OffscreenCanvas uzerinde calisir:
-   veri ayristirma/harita islemleri ana thread'i kilitlese bile akici kalir. */
 (function(){
   var cv=document.getElementById('sp-canvas'); if(!cv||!cv.getContext) return;
   var W=400, H=280, dpr=Math.min(window.devicePixelRatio||1,2), root=document.documentElement;
@@ -1850,7 +1836,7 @@ function setMapHeight() {
   const minH = 400;
   const isMobile = window.matchMedia('(max-width: 700px)').matches;
   const vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
-  const sheetPeek = isMobile ? 64 : 0;   // mobilde alt çekmece payı
+  const sheetPeek = isMobile ? 64 : 0;
   const h = Math.max(isMobile ? 340 : minH, vh - headerH - searchBarH - cardHeaderH - padding - 10 - sheetPeek);
   mapEl.style.height = h + 'px';
   map.invalidateSize();
@@ -1873,9 +1859,8 @@ if (document.documentElement.classList.contains('dark-mode')) {
   switchBasemap('dark', false);
 }
 
-/* Noktalar: Supercluster + tek canvas. Nokta başına Leaflet nesnesi yok; yalnızca görünen kümeler çizilir. */
 const PointLayer = L.Layer.extend({
-  initialize() { this.ZOFF = 1; /* kümeleme 1 zoom geriden hesaplanır: noktalar daha geç açılır */ this._entries = []; this._idx = null; this._hits = []; this._dim = false; this._raf = 0; this._bounds = null; this._hover = false; },
+  initialize() { this.ZOFF = 1; this._entries = []; this._idx = null; this._hits = []; this._dim = false; this._raf = 0; this._bounds = null; this._hover = false; },
   onAdd(map) {
     if (!map.getPane('pointPane')) {
       map.createPane('pointPane');
@@ -1904,12 +1889,12 @@ const PointLayer = L.Layer.extend({
       feats[i] = { type: 'Feature', properties: { i }, geometry: { type: 'Point', coordinates: [ll[1], ll[0]] } };
       if (ll[0] < s) s = ll[0]; if (ll[0] > n) n = ll[0]; if (ll[1] < w) w = ll[1]; if (ll[1] > e) e = ll[1];
     }
-    this._idx = new Supercluster({ radius: 60, extent: 256, maxZoom: 13, minPoints: 2 })   /* extent 256 = Leaflet karo boyutu; yoksa yarıçap yarıya iner */.load(feats);
+    this._idx = new Supercluster({ radius: 60, extent: 256, maxZoom: 13, minPoints: 2 }).load(feats);
     this._bounds = entries.length ? L.latLngBounds([s, w], [n, e]) : null;
     this._schedule();
   },
   clearLayers() { this._entries = []; this._idx = null; this._bounds = null; this._schedule(); },
-  getLayers() { return this._bounds ? [L.rectangle(this._bounds)] : []; },   // fitMap için sınırlar
+  getLayers() { return this._bounds ? [L.rectangle(this._bounds)] : []; },
   setDim(d) { this._dim = !!d; this._schedule(); },
   _schedule() {
     if (!this._map || this._raf || this._map._animatingZoom) return;
@@ -1969,7 +1954,7 @@ const PointLayer = L.Layer.extend({
   _onClick(e) {
     if (isDrawMode || isEditingDrawnArea) return;
     const h = this._hit(e.containerPoint); if (!h) return;
-    e._stopped = true;   // aşağıdaki "seçimi temizle" tıklamasını atlat
+    e._stopped = true;
     if (h.cl) {
       const z = Math.min(this._idx.getClusterExpansionZoom(h.f.properties.cluster_id) + this.ZOFF, this._map.getMaxZoom());
       this._map.setView([h.f.geometry.coordinates[1], h.f.geometry.coordinates[0]], z);
@@ -1993,7 +1978,7 @@ const layers = {
 };
 
 let highlightLayer = null;
-let _selToken = 0; // her yeni seçim/temizleme işleminde artar; geç dönen polygon yanıtlarını iptal eder
+let _selToken = 0;
 let selectedMarker = null;
 let selectedMarkerCoords = null;
 
@@ -2047,17 +2032,15 @@ function renderWatershed(data) {
   }).addTo(layers.watershed);
 }
 
-/* ===== Akarsu ağı: parçalı (Data/River/index.json) + zoom/görünüm alanına göre kademeli yükleme ===== */
 const RIVER_DIR = 'Data/River/';
 const RIVER_COLORS = {2:'#2f80d4',3:'#2a76cb',4:'#236bc0',5:'#1c5fb3',6:'#1553a5',7:'#0f4796',8:'#0a3c87',9:'#063178'};
 const RIVER_WEIGHTS = {2:1.1,3:1.4,4:1.8,5:2.3,6:2.9,7:3.5,8:4.1,9:4.7};
-// çizgi kalınlığı yakınlaştıkça artar (z9 ve altı ×0.8 → z15 ve üstü ×1.7)
 function _riverW(c, z) { return RIVER_WEIGHTS[c] * (z <= 9 ? 0.8 : z >= 15 ? 1.7 : 0.8 + (z - 9) * 0.15); }
 const RIVER_MIN_ZOOM = {9:5,8:6,7:7,6:8,5:9,4:10,3:11,2:12};
 const _lowEnd = (navigator.deviceMemory && navigator.deviceMemory <= 4) || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) || matchMedia('(pointer:coarse)').matches;
-const RIVER_MAX_READY = _lowEnd ? 2 : 3;   // bellekte aynı anda tutulan en fazla parça
-if (_lowEnd) RIVER_MIN_ZOOM[2] = 13;       // en yoğun (order-2) akarsular düşük donanımda yalnızca çok yakın zoomda
-const RIVER_MAX_PARALLEL = 2;   // aynı anda indirilen en fazla parça
+const RIVER_MAX_READY = _lowEnd ? 2 : 3;
+if (_lowEnd) RIVER_MIN_ZOOM[2] = 13;
+const RIVER_MAX_PARALLEL = 2;
 let _riverEnabled = false, _riverPass = 0, _riverTimer = null, _riverLoading = 0, _riverTick = 0;
 let _riverManifest = null, _riverManifestState = 'idle';
 
@@ -2173,7 +2156,7 @@ function refreshRivers() {
     }
     if (sh.state !== 'ready') return;
     const d = sh.data;
-    if (!want) {                      // görünmeyen/zoom dışı parçanın çizgilerini kaldır
+    if (!want) {
       for (const l of d.added.values()) layers.river.removeLayer(l);
       d.added.clear();
       return;
@@ -2524,7 +2507,7 @@ async function onPointClick(props, latlng, shiftKey) {
     try {
       feat = await fetchPolygonFeature(polyOID);
     } catch(e) {}
-    if (myToken !== _selToken) return; // bu arada başka seçim yapıldı ya da seçim temizlendi
+    if (myToken !== _selToken) return;
     if (!feat) throw new Error('Polygon bulunamadi');
     const loadingEl = document.getElementById('poly-loading');
     if (loadingEl) loadingEl.remove();
@@ -3114,7 +3097,7 @@ async function addToMultiSelection(props, latlng) {
   if (polyOID !== undefined && polyOID !== null) {
     try {
       const feat = await fetchPolygonFeature(polyOID);
-      if (feat && selectedPoints.includes(entry)) { // beklerken temizlendiyse çizme
+      if (feat && selectedPoints.includes(entry)) {
         entry.polyFeature = feat;
         entry.highlightLayer = L.geoJSON(feat, {
           style: () => ({ fillColor: color, fillOpacity: 0.25, color: color, weight: 2 })
@@ -3863,6 +3846,27 @@ const LC_FALLBACK = ['#8c6bb1','#e78ac3','#66c2a5','#fc8d62','#8da0cb','#a6d854'
 function _normName(str) {
   return String(str).toLowerCase().replace(/ı/g,'i').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/_/g,' ');
 }
+const LC_TR = [
+  [/no ?data|unknown|unclass/, 'Veri Yok'],
+  [/cloud/, 'Bulut'],
+  [/snow|\bice\b|glacier/, 'Kar / Buz'],
+  [/flood|wetland|marsh|swamp/, 'Su Basmış Bitki Örtüsü'],
+  [/water|lake|river|\bsea\b/, 'Su'],
+  [/built|urban|settle|artificial|impervious/, 'Yerleşim Alanı'],
+  [/crop|agri|cultivat|arable/, 'Tarım Alanı'],
+  [/tree|forest|woodland/, 'Orman / Ağaç Örtüsü'],
+  [/shrub|scrub|bush|heath/, 'Çalılık'],
+  [/range|grass|pasture|meadow|steppe/, 'Mera / Çayır'],
+  [/bare|barren|sand|rock|sparse/, 'Çıplak Zemin'],
+  [/moss|lichen|tundra/, 'Yosun / Liken']
+];
+function lcLabel(key) {
+  const raw = String(key).replace(/_/g, ' ');
+  if (LANG === 'en') return raw;
+  const nm = _normName(key);
+  const hit = LC_TR.find(r => r[0].test(nm));
+  return hit ? hit[1] : raw;
+}
 function _mixWhite(hex, t) {
   const n = parseInt(hex.slice(1), 16);
   const f = v => Math.round(v + (255 - v) * t).toString(16).padStart(2, '0');
@@ -3901,7 +3905,7 @@ function getComposition(row, origin) {
       it.label = `${code} — ${(LANG === 'en' ? koppenEN(code) : koppenTR(code)) || (koppenDescByCode[it.key] || '')}`.replace(/ — $/, '');
       base = KOPPEN_COLORS[code];
     } else {
-      it.short = it.label = String(it.key).replace(/_/g, ' ');
+      it.short = it.label = lcLabel(it.key);
       const nm = _normName(it.key);
       const hit = LC_RULES.find(r => r[0].test(nm));
       base = hit ? hit[1] : LC_FALLBACK[fb++ % LC_FALLBACK.length];
@@ -4250,7 +4254,7 @@ function dominantClass(row, origin) {
     if (typeof v === 'number' && v > bv) { bv = v; best = h; }
   }
   if (best === null) return '';
-  return (origin === 'koppen' && koppenDescByCode[best]) ? `${best} · ${koppenDescByCode[best]}` : best;
+  return (origin === 'koppen' && koppenDescByCode[best]) ? `${best} · ${koppenDescByCode[best]}` : (origin === 'landcover' ? lcLabel(best) : best);
 }
 const DSI_FIELDS = new Set(['Havza_Ad', 'Ana_havza']);
 const OUT_OF_BASIN_LABEL = 'Sınır Dışı';
@@ -4977,7 +4981,6 @@ function onHistPaletteChange(key) {
 const SCATTER_MAX_POINTS = 2000;
 function _randomSample(arr, max) {
   if (arr.length <= max) return arr;
-  // Sabit tohumlu rastgele seçim: palet/renk değişince aynı noktalar görünür, grafik oynamaz
   let seed = (0x9E3779B1 ^ arr.length) >>> 0;
   const rnd = () => {
     seed = (seed + 0x6D2B79F5) >>> 0;
@@ -5013,7 +5016,6 @@ function updateScatterChart() {
   const sample = getChartsData().filter(r => typeof r[xF]==='number' && typeof r[yF]==='number');
   const pts = _randomSample(sample, SCATTER_MAX_POINTS);
 
-  // r ve eğilim çizgisi seçili veri grubunun tamamından hesaplanır; sadece çizilen noktalar örneklenir
   const xs = sample.map(r=>r[xF]); const ys = sample.map(r=>r[yF]);
   const r  = pearsonR(xs, ys);
   const nAll = sample.length.toLocaleString(LOC());
@@ -5828,8 +5830,6 @@ function downloadDivAsImage(divId, filename) {
   });
 }
 
-/* PNG dışa aktarma: leaflet-image kullanılmaz. Altlık karoları ve vektör katmanları (havza, nokta, akarsu)
-   haritanın gerçek projeksiyonuyla, yüksek çözünürlükte yeniden çizilir; bu yüzden hizalı ve keskin olur. */
 function _loadCorsImg(url) {
   return new Promise(res => {
     const im = new Image();
@@ -5841,10 +5841,8 @@ function _loadCorsImg(url) {
 }
 function _corsUrl(u) {
   if (/^data:/.test(u)) return u;
-  return u + (u.indexOf('?') < 0 ? '?' : '&') + 'cors=1';   // önbellekteki CORS'suz kopyayı kullanma
+  return u + (u.indexOf('?') < 0 ? '?' : '&') + 'cors=1';
 }
-/* Karo yükleyici: önce fetch + cache:'reload' (tarayıcıda CORS'suz önbelleklenmiş kopyayı atlar, URL'yi değiştirmez),
-   olmazsa eski yöntem (Image + ?cors=1) */
 let _tileDiag = { jobs: 0, failed: 0, err: '' };
 async function _loadTileImg(url) {
   try {
@@ -5865,7 +5863,6 @@ async function _pool(items, n, fn) {
   return res;
 }
 
-/* Altlık karoları: extra>0 ise ekran zoom'undan "extra" seviye daha yüksek karolar çekilir (daha keskin) */
 async function _drawTiles(ctx, S, extra) {
   const zoom = map.getZoom();
   const pb = map.getPixelBounds();
@@ -5878,17 +5875,17 @@ async function _drawTiles(ctx, S, extra) {
     const tz = Math.min(base + extra, maxZ);
     if (extra > 0 && tz <= base) return;
     const ts = layer.getTileSize().x;
-    const k = map.getZoomScale(tz, zoom);            // 2^(tz - zoom)  (Leaflet: getZoomScale(toZoom, fromZoom))
-    const size = ts / k;                             // karonun ekran pikseli cinsinden boyu
+    const k = map.getZoomScale(tz, zoom);
+    const size = ts / k;
     const minT = pb.min.multiplyBy(k).divideBy(ts).floor();
     const maxT = pb.max.multiplyBy(k).divideBy(ts).floor();
     const alpha = o.opacity == null ? 1 : o.opacity;
     for (let y = minT.y; y <= maxT.y; y++) {
       for (let x = minT.x; x <= maxT.x; x++) {
         const c = new L.Point(x, y); c.z = tz;
-        const nT = Math.pow(2, tz);                    // tz'deki dünya genişliği (karo)
-        if (y < 0 || y >= nT) continue;                // dünya dışı (y)
-        const wc = new L.Point(((x % nT) + nT) % nT, y);   // x'i tz'ye göre sar
+        const nT = Math.pow(2, tz);
+        if (y < 0 || y >= nT) continue;
+        const wc = new L.Point(((x % nT) + nT) % nT, y);
         wc.z = tz;
         layer._tileZoom = tz;
         let url;
@@ -5917,7 +5914,6 @@ async function _drawTiles(ctx, S, extra) {
   return jobs.length;
 }
 
-/* Ekranda görünen karo <img>'lerini olduğu gibi çizer (URL/zoom hesabı yok) */
 async function _drawDomTiles(ctx, mapDiv, mapRect, S) {
   const imgs = Array.from(mapDiv.querySelectorAll('.leaflet-tile-pane img.leaflet-tile'))
     .filter(im => im.complete && im.naturalWidth > 0);
@@ -5958,7 +5954,6 @@ async function _drawMapDom(ctx, mapDiv, mapRect, S) {
     return o;
   };
 
-  // 1) Altlık: önce ekrandaki zoom'da, sonra (keskinlik için) daha yüksek zoom'da karolar
   const W = mapRect.width, H = mapRect.height;
   let d = Math.min(2, Math.max(0, Math.round(Math.log2(S))));
   while (d > 0) {
@@ -5972,7 +5967,6 @@ async function _drawMapDom(ctx, mapDiv, mapRect, S) {
   if (!domN) await _drawTiles(ctx, S, 0);
   if (d > 0) await _drawTiles(ctx, S, d);
 
-  // 2) Vektör katmanları (havza, mansap noktası, akarsu): haritanın projeksiyonuyla yüksek çözünürlükte
   const items = [];
   let order = 0;
   const skip = new Set();
@@ -6001,7 +5995,7 @@ async function _drawMapDom(ctx, mapDiv, mapRect, S) {
         if (l.getBounds) { try { if (!viewB.intersects(l.getBounds())) continue; } catch (e) {} }
         ctx.beginPath();
         let isLine = false;
-        if (l instanceof L.Polyline) {             // Polygon da Polyline'dır
+        if (l instanceof L.Polyline) {
           const closed = l instanceof L.Polygon;
           isLine = !closed;
           ringsOf(l.getLatLngs()).forEach(ring => {
@@ -6034,7 +6028,6 @@ async function _drawMapDom(ctx, mapDiv, mapRect, S) {
     }});
   });
 
-  // 3) Diğer canvas'lar, svg ve marker ikonları (varsa) — ekrandaki konumlarıyla
   mapDiv.querySelectorAll('canvas').forEach(cv => {
     if (skip.has(cv) || cv.closest('.leaflet-control') || !cv.width || !cv.height) return;
     const r = rel(cv);
@@ -6086,7 +6079,6 @@ async function downloadMapAsImage() {
   try {
     _tileDiag = { jobs: 0, failed: 0, err: '' };
     const mapRect = mapDiv.getBoundingClientRect();
-    // Yüksek çözünürlük: en uzun kenar ~8000 px'i geçmeyecek şekilde en çok 4x
     const SCALE = Math.max(2, Math.min(4, 8000 / Math.max(mapRect.width, mapRect.height)));
     const out = document.createElement('canvas');
     out.width  = Math.round(mapRect.width  * SCALE);
@@ -6107,7 +6099,7 @@ async function downloadMapAsImage() {
       const lx = (lr.left - mapRect.left) * SCALE;
       const lw = lr.width * SCALE;
       const lh = (riverOn ? 104 : 66) * SCALE;
-      const ly = (lr.bottom - mapRect.top) * SCALE - lh;   // sağ-alt köşeye sabit
+      const ly = (lr.bottom - mapRect.top) * SCALE - lh;
       const pad = 10 * SCALE;
       const sw = 13 * SCALE;
 
@@ -6131,7 +6123,6 @@ async function downloadMapAsImage() {
       ctx.fillText(tt('LEJANT'), lx + pad, ty);
       ty += 18 * SCALE;
 
-      // Havza sınırı
       ctx.fillStyle = 'rgba(163,59,46,0.2)';
       ctx.strokeStyle = '#a33b2e';
       ctx.lineWidth = 2 * SCALE;
@@ -6142,7 +6133,6 @@ async function downloadMapAsImage() {
       ctx.fillText(tt('Havza Sınırı'), lx + pad + sw + 7 * SCALE, ty);
       ty += 20 * SCALE;
 
-      // Mansap noktası
       ctx.beginPath();
       ctx.arc(lx + pad + sw/2, ty - sw/2 + 1 * SCALE, sw/2, 0, Math.PI * 2);
       ctx.fillStyle = '#9c5a34';
@@ -6150,7 +6140,6 @@ async function downloadMapAsImage() {
       ctx.fillStyle = '#222';
       ctx.fillText(tt('Mansap Noktası'), lx + pad + sw + 7 * SCALE, ty);
 
-      // Akarsular (Strahler)
       if (riverOn) {
         ty += 20 * SCALE;
         ctx.beginPath();
@@ -6185,7 +6174,7 @@ async function downloadMapAsImage() {
     a.href     = out.toDataURL('image/png');
     a.download = 'havza-haritasi.png';
     a.click();
-    if (_tileDiag.domOk) { /* ekran karoları çizildi, sorun yok */ }
+    if (_tileDiag.domOk) { }
     else if (_tileDiag.jobs === 0) alert('Uyarı: altlık harita için hiç karo istenmedi (tile katmanı bulunamadı).');
     else if (_tileDiag.failed > 0) alert('Uyarı: ' + _tileDiag.failed + '/' + _tileDiag.jobs + ' altlık karosu yüklenemedi.\nSon hata: ' + _tileDiag.err);
   } catch (err) {
@@ -6261,7 +6250,7 @@ const _CSV_WORKER_SRC = '(' + function () {
     P.forEach(p => { p.keyCol = p.headers.find(h => keyNames.includes(h)) || null; });
     const base = P[0], headers = base.headers.slice(), origin = {}, warnings = [], byKey = {};
     base.headers.forEach(h => { origin[h] = base.key; });
-    const merged = base.rows;   // kopyalamadan, yerinde birleştir
+    const merged = base.rows;
     if (base.keyCol) merged.forEach(r => { byKey[String(r[base.keyCol])] = r; });
     P.slice(1).forEach(src => {
       const add = src.headers.filter(h => h !== src.keyCol), rename = {};
@@ -6393,7 +6382,6 @@ function _loadExportLibs() {
 }
 
 async function autoLoad() {
-  // Tüm ağ istekleri aynı anda başlar; işleme sırası değişmez
   const _pointP = fetch('Data/point.json').then(r => r.ok ? r : fetch('Data/point.geojson'));
   const _csvP = _fetchCSVTexts();
   const _shpP = fetch('Data/Basin_General.shp').catch(() => null);
@@ -6591,14 +6579,13 @@ function renderTechMeta() {
     }).join('');
     return `<details${sec.open ? ' open' : ''}><summary>${escapeHtml(sec.title)}</summary><dl>${rows}</dl></details>`;
   }).join('');
-  // Akordeon: biri açılınca diğerleri kapanır (en son açılan açık kalır)
   if (!el._accordion) {
     el._accordion = true;
     el.addEventListener('toggle', e => {
       const d = e.target;
       if (!d.open || d.tagName !== 'DETAILS') return;
       el.querySelectorAll('details[open]').forEach(o => { if (o !== d) o.open = false; });
-    }, true);   // toggle olayı kabarcıklanmaz, bu yüzden capture ile dinlenir
+    }, true);
   }
 }
 
@@ -6693,7 +6680,6 @@ function mobileRevealPoint(latlng) {
   const body = sb && sb.querySelector('.panel-body');
   if (!sb || !hd) return;
 
-  // Kapalı konum payı (52px + güvenli alan) — CSS ile aynı ifadeyi ölçerek
   function peekPx() {
     const probe = document.createElement('div');
     probe.style.cssText = 'position:fixed;visibility:hidden;height:calc(52px + env(safe-area-inset-bottom, 0px));';
@@ -6702,7 +6688,7 @@ function mobileRevealPoint(latlng) {
     return h || 52;
   }
 
-  let drag = null;   // { startY, baseY, closedY, lastY, lastT, v, moved }
+  let drag = null;
 
   function begin(clientY) {
     const H = sb.offsetHeight;
@@ -6718,7 +6704,7 @@ function mobileRevealPoint(latlng) {
     const y = Math.min(drag.closedY, Math.max(0, drag.baseY + dy));
     sb.style.transform = 'translateY(' + y + 'px)';
     const now = performance.now(), dt = now - drag.lastT;
-    if (dt > 0) drag.v = (clientY - drag.lastY) / dt;   // px/ms, + = aşağı
+    if (dt > 0) drag.v = (clientY - drag.lastY) / dt;
     drag.lastY = clientY; drag.lastT = now;
   }
   function end() {
@@ -6731,13 +6717,12 @@ function mobileRevealPoint(latlng) {
       window._sheetDragged = true;
       setTimeout(() => { window._sheetDragged = false; }, 350);
       let open;
-      if (Math.abs(d.v) > 0.4) open = d.v < 0;          // hızlı fırlatma: yönüne göre
-      else open = cur < d.closedY / 2;                   // yavaş bırakma: yarıyı geçtiyse
+      if (Math.abs(d.v) > 0.4) open = d.v < 0;
+      else open = cur < d.closedY / 2;
       mobileSheet(open);
     }
   }
 
-  // Başlık: pointer events (dokunmatik + fare)
   hd.addEventListener('pointerdown', e => {
     if (!_mobileMQ.matches) return;
     begin(e.clientY);
@@ -6747,7 +6732,6 @@ function mobileRevealPoint(latlng) {
   hd.addEventListener('pointerup', end);
   hd.addEventListener('pointercancel', end);
 
-  // İçerik: en üstteyken aşağı çekince panel kapansın (içerik kaydırması ile çakışmaz)
   if (body) {
     let bStart = null, bActive = false;
     body.addEventListener('touchstart', e => {
