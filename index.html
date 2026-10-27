@@ -26,11 +26,11 @@
 <meta name="twitter:image" content="https://geographer16.github.io/Turkiye-Havza-Morfometrisi-Veri-Seti/Data/HM_V2.png">
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'self';
-  script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+  script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cloud.umami.is;
   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net;
   font-src 'self' https://fonts.gstatic.com;
   img-src 'self' data: blob: https://*.tile.opentopomap.org https://server.arcgisonline.com;
-  connect-src 'self' https://*.tile.opentopomap.org https://server.arcgisonline.com;
+  connect-src 'self' https://*.tile.opentopomap.org https://server.arcgisonline.com https://api-gateway.umami.dev https://cloud.umami.is;
   worker-src 'self' blob:;
   object-src 'none';
   base-uri 'self';
@@ -1117,6 +1117,7 @@
   document.addEventListener('DOMContentLoaded', function () { if (window.LANG === 'en') walk(document.documentElement); ui(); });
 })();
 </script>
+<script defer src="https://cloud.umami.is/script.js" data-website-id="4bd92d9e-eac9-420b-97ac-4d79fa3ad130"></script>
 </head>
 <body>
 <div id="splash" role="status" aria-live="polite">
@@ -6861,6 +6862,58 @@ function mobileRevealPoint(latlng) {
 })();
 </script>
 
+<script>
+(function () {
+  function track(name, data) {
+    try { if (window.umami && typeof umami.track === 'function') umami.track(name, data); } catch (e) {}
+  }
+  function wrap(fn, build) {
+    var orig = window[fn];
+    if (typeof orig !== 'function') return;
+    window[fn] = function () {
+      try { var r = build ? build.apply(this, arguments) : null; if (r) track(r[0], r[1]); } catch (e) {}
+      return orig.apply(this, arguments);
+    };
+  }
+  wrap('showTab', function (id) { return ['sekme', { sekme: id }]; });
+  wrap('onPointClick', function (props, ll, shift) {
+    return [shift ? 'havza-ekle-shift' : 'havza-sec', { wid: String((props && (props.WID || props.Poly_OID)) || '') }];
+  });
+  wrap('searchByWID', function () {
+    var el = document.getElementById('map-wid-search');
+    return (el && el.value.trim()) ? ['wid-arama', null] : null;
+  });
+  wrap('switchBasemap', function (key, manual) { return manual === false ? null : ['altlik-harita', { harita: key }]; });
+  wrap('toggleRivers', function (on) { return ['akarsu-katmani', { acik: !!on }]; });
+  wrap('startAreaDraw', function (type) { return ['alan-ciz-basla', { sekil: type }]; });
+  wrap('confirmDrawnArea', function () { return ['alan-ciz-onay', null]; });
+  wrap('shareSelectionLink', function () { return ['baglanti-paylas', null]; });
+  wrap('downloadSelectionAsExcel', function () { return ['indir-excel', null]; });
+  wrap('downloadSelectionAsPolygon', function () {
+    var f = document.getElementById('dlbar-poly-format');
+    return ['indir-polygon', { format: f ? f.value : '' }];
+  });
+  wrap('exportCSV', function () { return ['indir-csv', null]; });
+  wrap('showFilteredOnMap', function () { return ['tablo-haritada-goster', null]; });
+  wrap('downloadMapAsImage', function () { return ['indir-harita-png', null]; });
+  wrap('downloadChart', function (id) { return ['indir-grafik-png', { grafik: id }]; });
+  wrap('downloadDivAsImage', function (id) { return ['indir-grafik-png', { grafik: id }]; });
+  wrap('downloadMetadata', function (k) { return ['indir-metaveri', { tur: k }]; });
+  wrap('buildCorrMatrix', function () {
+    var m = document.getElementById('corr-method-sel');
+    return ['korelasyon-hesapla', { metot: m ? m.value : '' }];
+  });
+  wrap('copyCite', function () { return ['atif-kopyala', null]; });
+  wrap('i18nSetLang', function (l) { return l === window.LANG ? null : ['dil-degistir', { dil: l }]; });
+  wrap('toggleDarkMode', function () { return ['tema-degistir', null]; });
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a[href^="http"]');
+    if (!a) return;
+    var h = a.href;
+    if (/github\.com|zenodo\.org|doi\.org|youtube\.com/.test(h)) track('dis-baglanti', { url: h.slice(0, 120) });
+  });
+})();
+</script>
 <div id="v2-overlay" onclick="if(event.target===this) closeV2Notice()">
   <div id="v2-modal" role="dialog" aria-modal="true" aria-labelledby="v2-title">
     <button id="v2-close" onclick="closeV2Notice()" title="Kapat" aria-label="Kapat">Kapat</button>
