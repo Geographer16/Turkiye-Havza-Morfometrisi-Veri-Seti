@@ -895,6 +895,25 @@
   #compare-table tbody tr:last-child td { border-bottom: none; }
   #compare-table tbody tr:hover td { background: var(--accent-light); }
   .compare-hint { font-size: 12px; color: var(--text3); font-family:var(--font-sans); padding: 9px 18px; border-top: 1px solid var(--border); background: var(--surface2); }
+
+  /* --- Tam veri seti → Shapefile --- */
+  #fshp-card { margin-bottom: 26px; gap: 12px; }
+  #fshp-card .fshp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px 22px; }
+  #fshp-card fieldset { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px 12px; margin: 0; min-width: 0; }
+  #fshp-card legend { font: 600 12px var(--font-sans); color: var(--text); padding: 0 4px; }
+  #fshp-card .fshp-row { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; font: 13px var(--font-sans); color: var(--text); }
+  #fshp-card .fshp-chk { display: inline-flex; align-items: center; gap: 5px; font: 12.5px var(--font-sans); color: var(--text); cursor: pointer; white-space: nowrap; }
+  #fshp-card .fshp-list { max-height: 150px; overflow: auto; display: grid; grid-template-columns: 1fr; gap: 3px; padding: 4px 2px; border-top: 1px dashed var(--border); margin-top: 6px; }
+  #fshp-card .fshp-mini { background: none; border: 1px solid var(--border); border-radius: var(--radius-sm); font: 11px var(--font-sans); color: var(--text2); padding: 2px 8px; cursor: pointer; }
+  #fshp-card .fshp-mini:hover { color: var(--text); border-color: var(--text3); }
+  #fshp-card input[type=number] { width: 110px; padding: 4px 6px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font: 12.5px var(--font-sans); }
+  #fshp-card .fshp-hint { font: 11.5px var(--font-sans); color: var(--text3); line-height: 1.5; margin-top: 6px; }
+  #fshp-summary { font: 600 13px var(--font-sans); color: var(--accent); }
+  #fshp-progwrap { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; background: var(--surface2); }
+  #fshp-prog { height: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 99px; overflow: hidden; }
+  #fshp-bar { height: 100%; width: 0; background: var(--accent); transition: width .25s; }
+  #fshp-status { font: 12.5px var(--font-mono); color: var(--text); margin-top: 7px; word-break: break-word; }
+  #fshp-go:disabled { opacity: .5; cursor: wait; }
 </style>
 <script>
   (function() {
@@ -1006,6 +1025,7 @@
 ["Harita görseli oluşturulamadı. Altlık harita karoları tarayıcı güvenlik kısıtlaması nedeniyle dışa aktarılamamış olabilir.","The map image could not be created. Basemap tiles may not have been exportable because of a browser security restriction."],
 ["⚠ Korelasyon için sayısal parametre bulunamadı.","⚠ No numeric parameters found for correlation."],
 ["⚠ Hesaplama başarısız. Daha fazla veri veya farklı filtre deneyin.","⚠ Calculation failed. Try more data or a different filter."]
+,["Veri Setini Shapefile Olarak İndir (Sürüm 2)", "Download the Dataset as Shapefile (Version 2)"],["Sitedeki güncel (sürüm 2) veriden, seçtiğiniz filtrelere göre tek bir ZIP paketi oluşturulur. Havza poligonlarına morfometri, Köppen-Geiger, arazi örtüsü ve Curve Number öznitelikleri birleştirilmiş olarak eklenir. Koordinat sistemi: TUREF / TM36 (EPSG:5256).", "A single ZIP package is built from the current (version 2) data on this site according to your filters. Morphometry, Köppen-Geiger, land cover and Curve Number attributes are joined to the watershed polygons. Coordinate system: TUREF / TM36 (EPSG:5256)."],["Katmanlar", "Layers"],["Havza poligonları (birleşik özniteliklerle)", "Watershed polygons (with joined attributes)"],["Akarsu ağı", "River network"],["Akarsu Strahler derecesi:", "Stream Strahler order:"],["Yalnızca seçili havzaların alanı içindeki akarsular", "Only streams within the selected watersheds"],["Havza Strahler derecesi", "Watershed Strahler order"],["Tümü", "All"],["Hiçbiri", "None"],["Havzalar iç içedir; düşük dereceli havzalar yüksek dereceli havzaların içinde yer alır.", "Watersheds are nested; lower-order watersheds lie within higher-order ones."],["DSİ havzası", "DSI basin"],["Taban havza (GTS)", "Base basin (GTS)"],["Diğer filtreler", "Other filters"],["Alan (km²):", "Area (km²):"],["en az", "min"],["en çok", "max"],["Tablo sekmesindeki filtreyi de uygula", "Also apply the Table tab filter"],["Yalnızca haritada seçili havzalar", "Only watersheds selected on the map"],["⬇ Shapefile (ZIP) Oluştur ve İndir", "⬇ Build and Download Shapefile (ZIP)"],["İptal", "Cancel"],["Akarsu ağı (her zaman tamamı)","River network (always complete)"],["Paket tamamen tarayıcınızda oluşturulur. Tüm veri seti için yaklaşık 500 MB kaynak veri okunur ve işlem birkaç dakika sürebilir; Chrome veya Edge önerilir (dosya doğrudan diske yazılır). Diğer tarayıcılarda büyük indirmelerde bellek yetmeyebilir; bu durumda filtreleyerek parça parça indirin.", "The package is built entirely in your browser. About 500 MB of source data is read for the full dataset and it may take a few minutes; Chrome or Edge is recommended (the file is written directly to disk). Other browsers may run out of memory for large downloads; in that case download in filtered parts."]
   ].forEach(function (p) { D[norm(p[0])] = p[1]; });
   var TPI = { 'Dereler': 'Streams', 'Yamaç Ortası Drenajları': 'Midslope Drainages', 'Yüksek Arazi Drenajları': 'Upland Drainages', 'Vadiler': 'Valleys', 'Düzlükler': 'Plains', 'Açık Yamaçlar': 'Open Slopes', 'Üst Yamaçlar': 'Upper Slopes', 'Yerel Sırtlar': 'Local Ridges', 'Yamaç Ortası Sırtları': 'Midslope Ridges', 'Yüksek Sırtlar': 'High Ridges' };
   function pl(n, one, many) { return n + ' ' + (n === '1' ? one : many); }
@@ -1718,6 +1738,47 @@ function spCore(cv,W,H,dpr,env,raf,still0){
         </div>
       </div>
 
+    </div>
+
+    <div class="section-title">Veri Setini Shapefile Olarak İndir (Sürüm 2)</div>
+    <div class="dl-card" id="fshp-card">
+      <p>Sitedeki güncel (sürüm 2) veriden, seçtiğiniz filtrelere göre tek bir ZIP paketi oluşturulur. Havza poligonlarına morfometri, Köppen-Geiger, arazi örtüsü ve Curve Number öznitelikleri birleştirilmiş olarak eklenir. Koordinat sistemi: TUREF / TM36 (EPSG:5256).</p>
+      <div class="fshp-grid">
+        <fieldset>
+          <legend>Katmanlar</legend>
+          <label class="fshp-chk"><input type="checkbox" id="fshp-lay-poly" checked> Havza poligonları (birleşik özniteliklerle)</label><br>
+          <label class="fshp-chk"><input type="checkbox" id="fshp-lay-riv" checked> Akarsu ağı (her zaman tamamı)</label>
+        </fieldset>
+        <fieldset>
+          <legend>Havza Strahler derecesi</legend>
+          <div class="fshp-row"><label class="fshp-chk"><input type="checkbox" name="fshp-ord" value="2" checked> 2</label><label class="fshp-chk"><input type="checkbox" name="fshp-ord" value="3" checked> 3</label><label class="fshp-chk"><input type="checkbox" name="fshp-ord" value="4" checked> 4</label><label class="fshp-chk"><input type="checkbox" name="fshp-ord" value="5" checked> 5</label><label class="fshp-chk"><input type="checkbox" name="fshp-ord" value="6" checked> 6</label><label class="fshp-chk"><input type="checkbox" name="fshp-ord" value="7" checked> 7</label><label class="fshp-chk"><input type="checkbox" name="fshp-ord" value="8" checked> 8</label><label class="fshp-chk"><input type="checkbox" name="fshp-ord" value="9" checked> 9</label></div>
+          <div class="fshp-row" style="margin-top:6px"><button type="button" class="fshp-mini" data-all="fshp-ord" data-v="1">Tümü</button><button type="button" class="fshp-mini" data-all="fshp-ord" data-v="0">Hiçbiri</button></div>
+          <div class="fshp-hint">Havzalar iç içedir; düşük dereceli havzalar yüksek dereceli havzaların içinde yer alır.</div>
+        </fieldset>
+        <fieldset>
+          <legend>DSİ havzası</legend>
+          <div class="fshp-row"><button type="button" class="fshp-mini" data-all="fshp-dsi" data-v="1">Tümü</button><button type="button" class="fshp-mini" data-all="fshp-dsi" data-v="0">Hiçbiri</button></div>
+          <div class="fshp-list" id="fshp-dsi" data-i18n-skip></div>
+        </fieldset>
+        <fieldset>
+          <legend>Taban havza (GTS)</legend>
+          <div class="fshp-row"><button type="button" class="fshp-mini" data-all="fshp-taban" data-v="1">Tümü</button><button type="button" class="fshp-mini" data-all="fshp-taban" data-v="0">Hiçbiri</button></div>
+          <div class="fshp-list" id="fshp-taban" data-i18n-skip></div>
+        </fieldset>
+        <fieldset>
+          <legend>Diğer filtreler</legend>
+          <div class="fshp-row"><span>Alan (km²):</span><input type="number" id="fshp-amin" min="0" step="any" placeholder="en az"><span>–</span><input type="number" id="fshp-amax" min="0" step="any" placeholder="en çok"></div>
+          <label class="fshp-chk" style="margin-top:8px;white-space:normal;"><input type="checkbox" id="fshp-usetable"> Tablo sekmesindeki filtreyi de uygula <span id="fshp-usetable-n" data-i18n-skip></span></label><br>
+          <label class="fshp-chk" style="margin-top:4px;white-space:normal;"><input type="checkbox" id="fshp-usemap"> Yalnızca haritada seçili havzalar <span id="fshp-usemap-n" data-i18n-skip></span></label>
+        </fieldset>
+      </div>
+      <div id="fshp-summary" data-i18n-skip></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button type="button" id="fshp-go" class="dl-btn btn-primary" style="color:white;">⬇ Shapefile (ZIP) Oluştur ve İndir</button>
+        <button type="button" id="fshp-cancel" class="dl-btn btn-github-outline" style="display:none;">İptal</button>
+      </div>
+      <div id="fshp-progwrap" style="display:none;"><div id="fshp-prog"><div id="fshp-bar"></div></div><div id="fshp-status" data-i18n-skip></div></div>
+      <div class="fshp-hint">Paket tamamen tarayıcınızda oluşturulur. Tüm veri seti için yaklaşık 500 MB kaynak veri okunur ve işlem birkaç dakika sürebilir; Chrome veya Edge önerilir (dosya doğrudan diske yazılır). Diğer tarayıcılarda büyük indirmelerde bellek yetmeyebilir; bu durumda filtreleyerek parça parça indirin.</div>
     </div>
 
     <div class="section-title">Atıf / Kaynak Gösterme</div>
@@ -4310,6 +4371,7 @@ function applyMergedTable(rows, headers) {
   buildCharts();
 
   if (pointGeoJSON) { try { reindexPointWIDs(); } catch (e) { console.warn('[point yeniden eşleme]', e.message); } }
+  if (window.fshpRefresh) window.fshpRefresh();
 }
 
 function onCSVLoaded(text) {
@@ -5853,6 +5915,7 @@ function showTab(id, btn) {
   if (btn) btn.classList.add('active');
   if (id === 'map') setTimeout(() => { setMapHeight(); map.invalidateSize(); }, 50);
   if (id === 'charts') { try { profileAutoFromSelection(); } catch (e) { console.warn('[profil]', e); } }
+  if (id === 'download' && window.fshpRefresh) window.fshpRefresh();
 }
 
 const highlightColor = '#c1272d';
@@ -6960,5 +7023,733 @@ function mobileRevealPoint(latlng) {
   </div>
 </div>
 
+<script>
+/* ==========================================================================
+   TAM VERİ SETİ → SHAPEFILE (ZIP)
+   Havza poligonları (Data/polygons, TopoJSON parçaları) + dört CSV kaynağının
+   birleşik öznitelikleri (Morfometri, Köppen-Geiger, Arazi Örtüsü, CN) ve
+   akarsu ağı (Data/River) tarayıcıda parça parça okunur; TUREF / TM36
+   (EPSG:5256) koordinatlarında Shapefile olarak yazılır ve tek ZIP'e paketlenir.
+   Büyük veri için akış tabanlıdır: poligonlar bellekte biriktirilmez.
+   ========================================================================== */
+(function () {
+  'use strict';
+
+  const L = (tr, en) => (window.LANG === 'en' ? en : tr);
+  const FFLATE_URL = 'https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js';
+  const POLY_DIR = 'Data/polygons/';
+  const RIV_DIR = 'Data/River/';
+  const POLY_AVG_SHARD_BYTES = 812700;   // ~387 MB / 476 parça (yalnızca tahmin için)
+  const FETCH_CONC = 4;
+  const ZIP_FOLDER = 'Turkiye_Havza_Morfometrisi_v2/';
+  const ZIP_LEVEL = 6;
+
+  const PRJ_TM36 = 'PROJCS["TUREF_TM36",GEOGCS["GCS_TUREF",DATUM["D_Turkish_National_Reference_Frame",' +
+    'SPHEROID["GRS_1980",6378137.0,298.257222101]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],' +
+    'PROJECTION["Transverse_Mercator"],PARAMETER["False_Easting",500000.0],PARAMETER["False_Northing",0.0],' +
+    'PARAMETER["Central_Meridian",36.0],PARAMETER["Scale_Factor",1.0],PARAMETER["Latitude_Of_Origin",0.0],UNIT["Meter",1.0]]';
+
+  // Akarsu kırpma maskesi (TM36, 250 m hücre)
+  const MC = 250, MX0 = -560000, MY0 = 3700000;
+  const MW = Math.ceil((1380000 - MX0) / MC), MH = Math.ceil((4840000 - MY0) / MC);
+
+  // DBF alan adı en fazla 10 karakter
+  const FIELD_RENAME = { Flooded_Veg: 'Flood_Veg', Bare_Ground: 'Bare_Grnd' };
+  const FIELD_DESC = {
+    OBJECTID: ['Havza kimliği (Poly_OID / Object ile aynı)', 'Watershed ID (same as Poly_OID / Object)'],
+    WID: ['Havza tanımlayıcısı', 'Watershed identifier'],
+    Havza_Ad: ['DSİ havzası adı', 'DSI basin name'],
+    DSI_Kod: ['DSİ havza kodu', 'DSI basin code'],
+    Taban: ['GTS taban havzası (deniz/göl)', 'GTS base basin (sea/lake)'],
+    GTS_KOD: ['GTS kodu', 'GTS code'],
+    Strahler_O: ['Strahler dizin numarası', 'Strahler stream order'],
+    area_km2: ['Havza alanı (km²)', 'Basin area (km²)'],
+    Bh: ['Havza rölyefi (m)', 'Basin relief (m)'],
+    Hi: ['Hipsometrik integral', 'Hypsometric integral'],
+    T: ['Drenaj dokusu', 'Drainage texture'],
+    Dd: ['Drenaj yoğunluğu (km/km²)', 'Drainage density (km/km²)'],
+    Rn: ['Engebelilik sayısı', 'Ruggedness number'],
+    Lo: ['Yüzey akış uzunluğu (km)', 'Length of overland flow (km)'],
+    Fs: ['Akarsu sıklığı (adet/km²)', 'Stream frequency (no./km²)'],
+    Kc: ['Kompaktlık katsayısı', 'Compactness coefficient'],
+    MRn: ['Melton engebelilik oranı', 'Melton ruggedness number'],
+    Di: ['Yarılma indeksi', 'Dissection index'],
+    Rho: ['Rho katsayısı', 'Rho coefficient'],
+    If: ['İnfiltrasyon sayısı', 'Infiltration number'],
+    Rl: ['Uzunluk oranı', 'Length ratio'],
+    Rb: ['Çatallanma oranı', 'Bifurcation ratio'],
+    Tc_Kirpich: ['Yoğunlaşma süresi (Kirpich)', 'Time of concentration (Kirpich)'],
+    Water: ['Arazi örtüsü: su (%)', 'Land cover: water (%)'],
+    Trees: ['Arazi örtüsü: ağaçlık (%)', 'Land cover: trees (%)'],
+    Flooded_Veg: ['Arazi örtüsü: sulak bitki örtüsü (%)', 'Land cover: flooded vegetation (%)'],
+    Crops: ['Arazi örtüsü: tarım (%)', 'Land cover: crops (%)'],
+    Built_Area: ['Arazi örtüsü: yapılaşmış alan (%)', 'Land cover: built area (%)'],
+    Bare_Ground: ['Arazi örtüsü: çıplak zemin (%)', 'Land cover: bare ground (%)'],
+    Snow_Ice: ['Arazi örtüsü: kar/buz (%)', 'Land cover: snow/ice (%)'],
+    Clouds: ['Arazi örtüsü: bulut (%)', 'Land cover: clouds (%)'],
+    Rangeland: ['Arazi örtüsü: mera (%)', 'Land cover: rangeland (%)'],
+    CN: ['Curve Number (CN)', 'Curve Number (CN)']
+  };
+  const SOURCE_LABEL = { morphometry: 'Morfometri', koppen: 'Köppen-Geiger', landcover: 'Arazi Örtüsü', cn: 'Curve Number' };
+
+  const FS = { running: false, abort: false, riverIndex: null, built: false, specCache: null };
+  const $ = id => document.getElementById(id);
+
+  // ------------------------------------------------------------ yardımcılar
+  function chkAbort() { if (FS.abort) throw new Error('__abort__'); }
+  let _lastYield = 0;
+  async function yieldUI(force) {
+    const now = performance.now();
+    if (force || now - _lastYield > 60) { _lastYield = now; await new Promise(r => setTimeout(r, 0)); }
+  }
+  async function fetchJSON(url) {
+    let err;
+    for (let a = 0; a < 3; a++) {
+      try {
+        const r = await fetch(url);
+        if (!r.ok) throw new Error('HTTP ' + r.status + ' — ' + url);
+        return await r.json();
+      } catch (e) { err = e; if (FS.abort) break; await new Promise(r => setTimeout(r, 800 * (a + 1))); }
+    }
+    throw err;
+  }
+  // Sıralı işleme, önden en fazla `conc` parça indirme
+  async function pipeline(items, fetcher, handler, conc) {
+    const ps = new Array(items.length); let next = 0;
+    const launch = () => { if (next < items.length) { const i = next++; ps[i] = fetcher(items[i]); ps[i].catch(() => {}); } };
+    for (let i = 0; i < conc; i++) launch();
+    for (let i = 0; i < items.length; i++) {
+      chkAbort();
+      const data = await ps[i]; ps[i] = null; launch();
+      chkAbort();
+      await handler(data, items[i], i);
+      await yieldUI();
+    }
+  }
+  function utf8Len(s) {
+    let n = 0;
+    for (let i = 0; i < s.length; i++) {
+      const c = s.charCodeAt(i);
+      if (c < 0x80) n += 1; else if (c < 0x800) n += 2;
+      else if (c >= 0xD800 && c <= 0xDBFF) { n += 4; i++; } else n += 3;
+    }
+    return n;
+  }
+  function asciiName(s) {
+    const map = { 'ç': 'c', 'Ç': 'C', 'ğ': 'g', 'Ğ': 'G', 'ı': 'i', 'İ': 'I', 'ö': 'o', 'Ö': 'O', 'ş': 's', 'Ş': 'S', 'ü': 'u', 'Ü': 'U' };
+    return String(s).replace(/[çÇğĞıİöÖşŞüÜ]/g, c => map[c]).replace(/[^A-Za-z0-9_]/g, '_');
+  }
+  function fmtMB(b) { return (b / 1048576).toLocaleString(LOC(), { maximumFractionDigits: b < 10485760 ? 1 : 0 }) + ' MB'; }
+  function fmtN(n) { return Number(n).toLocaleString(LOC()); }
+  function keyCol() { return (typeof findKeyColumn === 'function' && findKeyColumn(csvHeaders)) || 'OBJECTID'; }
+
+  // ------------------------------------------------------------ SHP yazıcı
+  class ShpWriter {
+    constructor(type) {
+      this.type = type; this.chunks = []; this.n = 0; this.pos = 100; this.shx = [];
+      this.bb = [Infinity, Infinity, -Infinity, -Infinity];
+      this._alloc(8 << 20);
+    }
+    _alloc(cap) { this.cap = cap; this.buf = new ArrayBuffer(cap); this.dv = new DataView(this.buf); this.u8 = new Uint8Array(this.buf); this.off = 0; }
+    _flush() { if (this.off) { this.chunks.push(new Blob([this.u8.subarray(0, this.off)])); this.off = 0; } }
+    _ensure(len) {
+      if (this.off + len <= this.cap) return;
+      this._flush();
+      if (len > this.cap) this._alloc(Math.max(len, 8 << 20));
+    }
+    // parts: [[ [x,y], ... ], ...]
+    add(parts) {
+      let np = 0, n = 0;
+      for (const p of parts) { np++; n += p.length; }
+      if (!n) return false;
+      const content = 44 + 4 * np + 16 * n, rec = 8 + content;
+      this._ensure(rec);
+      const dv = this.dv, o = this.off;
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      dv.setInt32(o, ++this.n, false);
+      dv.setInt32(o + 4, content / 2, false);
+      dv.setInt32(o + 8, this.type, true);
+      dv.setInt32(o + 44, np, true);
+      dv.setInt32(o + 48, n, true);
+      let q = o + 52, start = 0;
+      for (const p of parts) { dv.setInt32(q, start, true); q += 4; start += p.length; }
+      for (const p of parts) {
+        for (let i = 0; i < p.length; i++) {
+          const x = p[i][0], y = p[i][1];
+          dv.setFloat64(q, x, true); dv.setFloat64(q + 8, y, true); q += 16;
+          if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+        }
+      }
+      dv.setFloat64(o + 12, x0, true); dv.setFloat64(o + 20, y0, true);
+      dv.setFloat64(o + 28, x1, true); dv.setFloat64(o + 36, y1, true);
+      const b = this.bb;
+      if (x0 < b[0]) b[0] = x0; if (y0 < b[1]) b[1] = y0; if (x1 > b[2]) b[2] = x1; if (y1 > b[3]) b[3] = y1;
+      this.shx.push(this.pos / 2, content / 2);
+      this.pos += rec; this.off += rec;
+      return true;
+    }
+    _header(lenBytes) {
+      const h = new ArrayBuffer(100), dv = new DataView(h);
+      dv.setInt32(0, 9994, false); dv.setInt32(24, lenBytes / 2, false);
+      dv.setInt32(28, 1000, true); dv.setInt32(32, this.type, true);
+      const b = this.n ? this.bb : [0, 0, 0, 0];
+      dv.setFloat64(36, b[0], true); dv.setFloat64(44, b[1], true); dv.setFloat64(52, b[2], true); dv.setFloat64(60, b[3], true);
+      return new Uint8Array(h);
+    }
+    finish() {
+      this._flush();
+      const shp = new Blob([this._header(this.pos), ...this.chunks]);
+      const shxLen = 100 + 8 * this.n;
+      const shx = new Uint8Array(shxLen); shx.set(this._header(shxLen), 0);
+      const dv = new DataView(shx.buffer);
+      for (let i = 0; i < this.n; i++) { dv.setInt32(100 + i * 8, this.shx[i * 2], false); dv.setInt32(104 + i * 8, this.shx[i * 2 + 1], false); }
+      this.chunks = []; this.buf = null; this.shx = null;
+      return { shp, shx };
+    }
+  }
+
+  // ------------------------------------------------------------ DBF yazıcı
+  class DbfWriter {
+    constructor(fields) {
+      this.fields = fields; this.n = 0; this.chunks = [];
+      this.recLen = 1 + fields.reduce((s, f) => s + f.len, 0);
+      this.cap = Math.max(1, Math.floor((4 << 20) / this.recLen)) * this.recLen;
+      this.u8 = new Uint8Array(this.cap); this.off = 0;
+      this.enc = new TextEncoder();
+    }
+    add(row) {
+      if (this.off + this.recLen > this.cap) { this.chunks.push(new Blob([this.u8.subarray(0, this.off)])); this.off = 0; }
+      const u = this.u8; let o = this.off;
+      u.fill(0x20, o, o + this.recLen); o++;
+      for (const f of this.fields) {
+        const v = row ? row[f.src] : null;
+        if (v !== null && v !== undefined && v !== '') {
+          if (f.type === 'N') {
+            const num = typeof v === 'number' ? v : parseFloat(v);
+            if (isFinite(num)) {
+              let s = num.toFixed(f.dec);
+              if (s.length > f.len) s = num.toPrecision(Math.max(1, f.len - 6));
+              if (s.length <= f.len) { const st = o + f.len - s.length; for (let i = 0; i < s.length; i++) u[st + i] = s.charCodeAt(i); }
+            }
+          } else {
+            let b = this.enc.encode(String(v));
+            if (b.length > f.len) { let k = f.len; while (k > 0 && (b[k] & 0xC0) === 0x80) k--; b = b.subarray(0, k); }
+            u.set(b, o);
+          }
+        }
+        o += f.len;
+      }
+      this.off += this.recLen; this.n++;
+    }
+    finish() {
+      if (this.off) this.chunks.push(new Blob([this.u8.subarray(0, this.off)]));
+      const nf = this.fields.length, hl = 32 + 32 * nf + 1;
+      const h = new Uint8Array(hl), dv = new DataView(h.buffer), d = new Date();
+      h[0] = 0x03; h[1] = d.getFullYear() - 1900; h[2] = d.getMonth() + 1; h[3] = d.getDate();
+      dv.setUint32(4, this.n, true); dv.setUint16(8, hl, true); dv.setUint16(10, this.recLen, true);
+      this.fields.forEach((f, i) => {
+        const o = 32 + i * 32;
+        for (let k = 0; k < f.name.length && k < 10; k++) h[o + k] = f.name.charCodeAt(k);
+        h[o + 11] = f.type.charCodeAt(0); h[o + 16] = f.len; h[o + 17] = f.dec;
+      });
+      h[hl - 1] = 0x0D;
+      const blob = new Blob([h, ...this.chunks, new Uint8Array([0x1A])]);
+      this.chunks = []; this.u8 = null;
+      return blob;
+    }
+  }
+
+  // CSV sütunlarından DBF alan tanımları (tüm veri üzerinden; her indirmede aynı şema)
+  function buildFieldSpecs() {
+    if (FS.specCache && FS.specCache.data === csvData) return FS.specCache.specs;
+    const specs = [], used = new Set();
+    for (const h of csvHeaders) {
+      let isNum = true, any = false, maxInt = 1, maxDec = 0, maxBytes = 1;
+      for (let i = 0; i < csvData.length; i++) {
+        const v = csvData[i][h];
+        if (v === '' || v === null || v === undefined) continue;
+        any = true;
+        if (typeof v === 'number' && isFinite(v)) {
+          let s = String(v);
+          if (s.indexOf('e') >= 0) s = v.toFixed(10).replace(/0+$/, '').replace(/\.$/, '');
+          const dot = s.indexOf('.');
+          const il = dot < 0 ? s.length : dot, dl = dot < 0 ? 0 : s.length - dot - 1;
+          if (il > maxInt) maxInt = il; if (dl > maxDec) maxDec = dl;
+          if (s.length > maxBytes) maxBytes = s.length;
+        } else {
+          isNum = false;
+          const b = utf8Len(String(v)); if (b > maxBytes) maxBytes = b;
+        }
+      }
+      let name = FIELD_RENAME[h] || asciiName(h).slice(0, 10) || 'F';
+      if (used.has(name.toUpperCase())) { let k = 1; const base = name.slice(0, 8); while (used.has((base + '_' + k).toUpperCase())) k++; name = base + '_' + k; }
+      used.add(name.toUpperCase());
+      if (isNum && any) {
+        let dec = Math.min(maxDec, 10);
+        let len = maxInt + 1 + (dec ? dec + 1 : 0);   // +1: yuvarlama payı
+        if (len > 20) { dec = Math.max(0, dec - (len - 20)); len = 20; }
+        specs.push({ name, src: h, type: 'N', len, dec });
+      } else {
+        specs.push({ name, src: h, type: 'C', len: Math.min(254, Math.max(1, maxBytes)), dec: 0 });
+      }
+    }
+    FS.specCache = { data: csvData, specs };
+    return specs;
+  }
+
+  // ------------------------------------------------------------ geometri
+  function ringArea(r) {
+    let a = 0;
+    for (let i = 0, n = r.length - 1; i < n; i++) a += r[i][0] * r[i + 1][1] - r[i + 1][0] * r[i][1];
+    return a / 2;
+  }
+  // Shapefile: dış halka saat yönünde, delikler saat yönü tersine
+  function shpRings(polys) {
+    const out = [];
+    for (const poly of polys) {
+      poly.forEach((ring, i) => {
+        if (!ring || ring.length < 4) return;
+        const a = ringArea(ring);
+        out.push((i === 0 ? a > 0 : a < 0) ? ring.slice().reverse() : ring);
+      });
+    }
+    return out;
+  }
+  function geomPolys(g) {
+    if (!g) return [];
+    if (g.type === 'Polygon') return [g.coordinates];
+    if (g.type === 'MultiPolygon') return g.coordinates;
+    return [];
+  }
+  function geomLines(g) {
+    if (!g) return [];
+    if (g.type === 'LineString') return [g.coordinates];
+    if (g.type === 'MultiLineString') return g.coordinates;
+    return [];
+  }
+  function lineLength(lines) {
+    let s = 0;
+    for (const l of lines) for (let i = 1; i < l.length; i++) s += Math.hypot(l[i][0] - l[i - 1][0], l[i][1] - l[i - 1][1]);
+    return s;
+  }
+  // Seçili havzaların kapladığı alanı 250 m'lik maskeye işler (akarsu kırpma için)
+  function rasterize(polys, mask) {
+    for (const poly of polys) {
+      const outer = poly[0]; if (!outer || outer.length < 4) continue;
+      let ymin = Infinity, ymax = -Infinity;
+      for (const p of outer) { if (p[1] < ymin) ymin = p[1]; if (p[1] > ymax) ymax = p[1]; }
+      const r0 = Math.max(0, Math.ceil((ymin - MY0) / MC - 0.5)), r1 = Math.min(MH - 1, Math.floor((ymax - MY0) / MC - 0.5));
+      let filled = false;
+      if (r1 >= r0) {
+        const rows = new Array(r1 - r0 + 1);
+        for (const ring of poly) {
+          for (let i = 0; i < ring.length - 1; i++) {
+            const ax = ring[i][0], ay = ring[i][1], bx = ring[i + 1][0], by = ring[i + 1][1];
+            if (ay === by) continue;
+            const lo = Math.min(ay, by), hi = Math.max(ay, by);
+            const rs = Math.max(r0, Math.ceil((lo - MY0) / MC - 0.5)), re = Math.min(r1, Math.ceil((hi - MY0) / MC - 0.5) - 1);
+            for (let r = rs; r <= re; r++) {
+              const yc = MY0 + (r + 0.5) * MC;
+              (rows[r - r0] || (rows[r - r0] = [])).push(ax + (yc - ay) * (bx - ax) / (by - ay));
+            }
+          }
+        }
+        for (let k = 0; k < rows.length; k++) {
+          const xs = rows[k]; if (!xs || xs.length < 2) continue;
+          xs.sort((a, b) => a - b);
+          const base = (r0 + k) * MW;
+          for (let j = 0; j + 1 < xs.length; j += 2) {
+            const c0 = Math.max(0, Math.ceil((xs[j] - MX0) / MC - 0.5)), c1 = Math.min(MW - 1, Math.floor((xs[j + 1] - MX0) / MC - 0.5));
+            if (c1 >= c0) { mask.fill(1, base + c0, base + c1 + 1); filled = true; }
+          }
+        }
+      }
+      if (!filled) { const c = Math.floor((outer[0][0] - MX0) / MC), r = Math.floor((outer[0][1] - MY0) / MC); if (c >= 0 && c < MW && r >= 0 && r < MH) mask[r * MW + c] = 1; }
+    }
+  }
+  function maskHas(mask, x, y) {
+    const c = Math.floor((x - MX0) / MC), r = Math.floor((y - MY0) / MC);
+    return c >= 0 && c < MW && r >= 0 && r < MH && mask[r * MW + c] === 1;
+  }
+
+  // ------------------------------------------------------------ çıktı hedefleri
+  async function fileSink(handle) {
+    const w = await handle.createWritable();
+    let q = [], qb = 0, total = 0;
+    const write = async () => {
+      if (!qb) return;
+      const buf = new Uint8Array(qb); let o = 0;
+      for (const c of q) { buf.set(c, o); o += c.length; }
+      q = []; qb = 0; await w.write(buf);
+    };
+    return {
+      push(c) { q.push(c); qb += c.length; total += c.length; },
+      async flush(force) { if (force || qb >= (4 << 20)) await write(); },
+      async close() { await write(); await w.close(); },
+      async abort() { try { await w.abort(); } catch (e) {} },
+      get bytes() { return total; }, toDisk: true
+    };
+  }
+  function memSink(fname) {
+    let q = [], qb = 0, total = 0; const parts = [];
+    return {
+      push(c) { q.push(c); qb += c.length; total += c.length; },
+      async flush(force) { if (qb && (force || qb >= (16 << 20))) { parts.push(new Blob(q)); q = []; qb = 0; } },
+      async close() { await this.flush(true); triggerBlobDownload(new Blob(parts, { type: 'application/zip' }), fname); },
+      async abort() { parts.length = 0; q = []; },
+      get bytes() { return total; }, toDisk: false
+    };
+  }
+
+  // ------------------------------------------------------------ arayüz
+  function setProgress(pct, text) {
+    const bar = $('fshp-bar'), st = $('fshp-status');
+    if (bar && pct !== undefined) bar.style.width = Math.max(0, Math.min(100, pct)).toFixed(1) + '%';
+    if (st && text !== undefined) st.textContent = text;
+  }
+  function setBusy(b) {
+    $('fshp-go').disabled = b; $('fshp-cancel').style.display = b ? '' : 'none';
+    $('fshp-progwrap').style.display = b ? '' : $('fshp-progwrap').style.display;
+    document.querySelectorAll('#fshp-card input').forEach(i => { i.disabled = b; });
+  }
+  function checkedVals(name) { return [...document.querySelectorAll(`#fshp-card input[name="${name}"]:checked`)].map(i => i.value); }
+
+  function buildOptions() {
+    if (FS.built || typeof csvData === 'undefined' || !csvData || !csvData.length) return;
+    const dsi = new Map(), taban = new Map();
+    for (const r of csvData) {
+      if (r.Havza_Ad !== undefined && r.Havza_Ad !== '') {
+        const k = String(r.Havza_Ad); const e = dsi.get(k) || { code: r.DSI_Kod, n: 0 }; e.n++; dsi.set(k, e);
+      }
+      if (r.Taban !== undefined && r.Taban !== '') { const k = String(r.Taban); taban.set(k, (taban.get(k) || 0) + 1); }
+    }
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    $('fshp-dsi').innerHTML = [...dsi.entries()].sort((a, b) => (Number(a[1].code) || 0) - (Number(b[1].code) || 0))
+      .map(([k, e]) => `<label class="fshp-chk"><input type="checkbox" name="fshp-dsi" value="${esc(k)}" checked> ${e.code !== undefined && e.code !== '' ? esc(e.code) + ' · ' : ''}${esc(k)}</label>`).join('');
+    $('fshp-taban').innerHTML = [...taban.entries()].sort((a, b) => b[1] - a[1])
+      .map(([k]) => `<label class="fshp-chk"><input type="checkbox" name="fshp-taban" value="${esc(k)}" checked> ${esc(k)}</label>`).join('');
+    FS.built = true;
+  }
+
+  function currentSelection() {
+    const kc = keyCol();
+    const ords = new Set(checkedVals('fshp-ord').map(Number));
+    const dsiAll = document.querySelectorAll('#fshp-card input[name="fshp-dsi"]').length;
+    const dsis = new Set(checkedVals('fshp-dsi'));
+    const tabAll = document.querySelectorAll('#fshp-card input[name="fshp-taban"]').length;
+    const tabs = new Set(checkedVals('fshp-taban'));
+    const amin = parseFloat($('fshp-amin').value), amax = parseFloat($('fshp-amax').value);
+    const useTable = $('fshp-usetable').checked && typeof filteredData !== 'undefined' && filteredData && filteredData.length !== csvData.length;
+    const useMap = $('fshp-usemap').checked;
+    const tableSet = useTable ? new Set(filteredData.map(r => String(r[kc]))) : null;
+    const mapSet = useMap ? new Set((selectedPoints || []).map(sp => String(sp.props && sp.props.Poly_OID))) : null;
+    const fDsi = dsis.size < dsiAll, fTab = tabs.size < tabAll, fOrd = ords.size < 8;
+    const rows = csvData.filter(r => {
+      if (fOrd && !ords.has(Number(r.Strahler_O))) return false;
+      if (fDsi && !dsis.has(String(r.Havza_Ad))) return false;
+      if (fTab && !tabs.has(String(r.Taban))) return false;
+      if (!isNaN(amin) && !(Number(r.area_km2) >= amin)) return false;
+      if (!isNaN(amax) && !(Number(r.area_km2) <= amax)) return false;
+      if (tableSet && !tableSet.has(String(r[kc]))) return false;
+      if (mapSet && !mapSet.has(String(r[kc]))) return false;
+      return true;
+    });
+    const desc = [];
+    if (fOrd) desc.push('Havza Strahler derecesi: ' + [...ords].sort((a, b) => a - b).join(', '));
+    if (fDsi) desc.push('DSİ havzası: ' + [...dsis].join(', '));
+    if (fTab) desc.push('Taban havza (GTS): ' + [...tabs].join(', '));
+    if (!isNaN(amin)) desc.push('Alan ≥ ' + amin + ' km²');
+    if (!isNaN(amax)) desc.push('Alan ≤ ' + amax + ' km²');
+    if (tableSet) desc.push('Tablo sekmesindeki filtre (' + tableSet.size + ' kayıt)');
+    if (mapSet) desc.push('Haritada seçili havzalar (' + mapSet.size + ')');
+    return { rows, all: rows.length === csvData.length, desc, kc };
+  }
+
+  async function updateSummary() {
+    if (FS.running) return;
+    buildOptions();
+    const el = $('fshp-summary'); if (!el) return;
+    if (typeof csvData === 'undefined' || !csvData || !csvData.length) { el.textContent = L('Veriler yükleniyor…', 'Loading data…'); return; }
+    const tl = $('fshp-usetable-n');
+    if (tl) tl.textContent = (filteredData && filteredData.length !== csvData.length) ? `(${fmtN(filteredData.length)} ${L('kayıt', 'records')})` : L('(şu an filtre yok)', '(no filter active)');
+    const ml = $('fshp-usemap-n'); if (ml) ml.textContent = `(${fmtN((selectedPoints || []).length)})`;
+    const sel = currentSelection();
+    const wantPoly = $('fshp-lay-poly').checked, wantRiv = $('fshp-lay-riv').checked;
+    const clip = false;
+    let bytes = 0;
+    if (wantPoly || clip) {
+      const idx = await _loadPolyShardIndex();
+      if (idx && idx.shard) { const ks = new Set(); for (const r of sel.rows) { const k = idx.shard[Number(r[sel.kc]) - 1]; if (k !== undefined) ks.add(k); } bytes += ks.size * POLY_AVG_SHARD_BYTES; }
+    }
+    if (wantRiv) {
+      try { if (!FS.riverIndex) FS.riverIndex = await fetchJSON(RIV_DIR + 'index.json'); } catch (e) {}
+      if (FS.riverIndex) bytes += FS.riverIndex.shards.reduce((s, x) => s + x.bytes, 0);
+    }
+    el.textContent = `${fmtN(sel.rows.length)} / ${fmtN(csvData.length)} ${L('havza seçili', 'watersheds selected')}` +
+      (bytes ? ` · ${L('yaklaşık', 'approx.')} ${fmtMB(bytes)} ${L('kaynak veri okunacak', 'of source data will be read')}` : '');
+  }
+
+  // ------------------------------------------------------------ ana işlem
+  async function run() {
+    if (FS.running) return;
+    if (typeof csvData === 'undefined' || !csvData || !csvData.length) { alert(L('Veriler henüz yüklenmedi, lütfen birkaç saniye bekleyin.', 'Data is not loaded yet, please wait a few seconds.')); return; }
+    const wantPoly = $('fshp-lay-poly').checked, wantRiv = $('fshp-lay-riv').checked;
+    if (!wantPoly && !wantRiv) { alert(L('En az bir katman seçin.', 'Select at least one layer.')); return; }
+    const sel = currentSelection();
+    const clip = false;
+    if ((wantPoly || clip) && !sel.rows.length) { alert(L('Filtrelere uyan havza yok.', 'No watersheds match the filters.')); return; }
+
+    const stamp = new Date().toISOString().slice(0, 10);
+    const fname = `Turkiye_Havza_Morfometrisi_v2_SHP_${sel.all ? 'tum' : 'filtreli_' + sel.rows.length}_${stamp}.zip`;
+
+    // Kaydetme penceresi kullanıcı tıklamasından hemen sonra açılmalı
+    let sink = null;
+    if (window.showSaveFilePicker && window.isSecureContext && !window.__fshpNoPicker) {
+      try {
+        const h = await window.showSaveFilePicker({ suggestedName: fname, types: [{ description: 'ZIP', accept: { 'application/zip': ['.zip'] } }] });
+        sink = await fileSink(h);
+      } catch (e) { if (e && e.name === 'AbortError') return; sink = null; }
+    }
+    if (!sink) sink = memSink(fname);
+
+    FS.running = true; FS.abort = false;
+    $('fshp-progwrap').style.display = '';
+    setBusy(true);
+    const t0 = performance.now();
+    const report = { polys: 0, polyMissing: 0, rivers: 0, rivShards: 0 };
+    try {
+      setProgress(0, L('Kütüphaneler yükleniyor…', 'Loading libraries…'));
+      if (typeof fflate === 'undefined') await _loadScript(FFLATE_URL);
+      if (typeof topojson === 'undefined') throw new Error('topojson-client yüklenemedi');
+
+      // ---------------- 1) Havza poligonları
+      const entries = [];
+      let mask = null, selBB = null;
+      if (wantPoly || clip) {
+        const idx = await _loadPolyShardIndex();
+        if (!idx || !idx.shard) throw new Error(L('Poligon dizini (Data/polygons/index.json) okunamadı.', 'Polygon index could not be read.'));
+        const byShard = new Map();
+        for (const r of sel.rows) {
+          const oid = Number(r[sel.kc]); const k = idx.shard[oid - 1];
+          if (k === undefined) { report.polyMissing++; continue; }
+          (byShard.get(k) || byShard.set(k, new Set()).get(k)).add(oid);
+        }
+        const keys = [...byShard.keys()].sort((a, b) => a - b);
+        const specs = wantPoly ? buildFieldSpecs() : null;
+        const shpW = wantPoly ? new ShpWriter(5) : null;
+        const dbfW = wantPoly ? new DbfWriter(specs) : null;
+        if (clip) { mask = new Uint8Array(MW * MH); selBB = [Infinity, Infinity, -Infinity, -Infinity]; }
+        const pEnd = wantRiv ? 55 : 80;
+        let found = 0;
+        await pipeline(keys, k => fetchJSON(`${POLY_DIR}p${k}.json`), async (topo, k, i) => {
+          const want = byShard.get(k);
+          const obj = topo.objects.polygon || Object.values(topo.objects)[0];
+          for (const f of topojson.feature(topo, obj).features) {
+            const oid = Number(f.properties && f.properties.Object);
+            if (!want.has(oid)) continue;
+            want.delete(oid);
+            const polys = geomPolys(f.geometry);
+            if (shpW) { if (shpW.add(shpRings(polys))) { dbfW.add(watershedById[String(oid)]); found++; } else report.polyMissing++; }
+            if (mask) {
+              rasterize(polys, mask);
+              for (const poly of polys) for (const p of poly[0] || []) { if (p[0] < selBB[0]) selBB[0] = p[0]; if (p[0] > selBB[2]) selBB[2] = p[0]; if (p[1] < selBB[1]) selBB[1] = p[1]; if (p[1] > selBB[3]) selBB[3] = p[1]; }
+            }
+          }
+          report.polyMissing += want.size;
+          setProgress(pEnd * (i + 1) / keys.length, `${L('Havza poligonları', 'Watershed polygons')}: ${L('parça', 'chunk')} ${i + 1}/${keys.length} · ${fmtN(found)} ${L('havza yazıldı', 'watersheds written')}`);
+        }, FETCH_CONC);
+        report.polys = found;
+        if (shpW) {
+          const { shp, shx } = shpW.finish();
+          const base = ZIP_FOLDER + 'Havza_Poligonlari';
+          entries.push([base + '.shp', shp], [base + '.shx', shx], [base + '.dbf', dbfW.finish()], [base + '.prj', PRJ_TM36], [base + '.cpg', 'UTF-8']);
+        }
+      }
+
+      // ---------------- 2) Akarsu ağı
+      if (wantRiv) {
+        if (!FS.riverIndex) FS.riverIndex = await fetchJSON(RIV_DIR + 'index.json');
+        const shards = FS.riverIndex.shards;
+        report.rivShards = shards.length;
+        const shpW = new ShpWriter(3);
+        const dbfW = new DbfWriter([
+          { name: 'grid_code', src: 'grid_code', type: 'N', len: 2, dec: 0 },
+          { name: 'Uzunluk_m', src: 'len', type: 'N', len: 12, dec: 1 }
+        ]);
+        const p0 = wantPoly || clip ? 55 : 0, p1 = 80;
+        await pipeline(shards, s => fetchJSON(RIV_DIR + s.file), async (topo, s, i) => {
+          const obj = Object.values(topo.objects)[0];
+          for (const f of topojson.feature(topo, obj).features) {
+            const code = Number(f.properties && f.properties.grid_code);
+            const lines = geomLines(f.geometry).filter(l => l && l.length >= 2);
+            if (!lines.length) continue;
+            if (mask) {
+              let best = lines[0]; for (const l of lines) if (l.length > best.length) best = l;
+              const m = best[Math.floor(best.length / 2)];
+              if (!maskHas(mask, m[0], m[1])) continue;
+            }
+            if (shpW.add(lines)) { dbfW.add({ grid_code: code, len: lineLength(lines) }); report.rivers++; }
+          }
+          setProgress(p0 + (p1 - p0) * (i + 1) / shards.length, `${L('Akarsu ağı', 'River network')}: ${L('parça', 'chunk')} ${i + 1}/${shards.length} · ${fmtN(report.rivers)} ${L('akarsu yazıldı', 'streams written')}`);
+        }, 2);
+        mask = null;
+        const { shp, shx } = shpW.finish();
+        const base = ZIP_FOLDER + 'Akarsu_Agi';
+        entries.push([base + '.shp', shp], [base + '.shx', shx], [base + '.dbf', dbfW.finish()], [base + '.prj', PRJ_TM36], [base + '.cpg', 'UTF-8']);
+      }
+
+      // ---------------- 3) Belgeler
+      entries.push([ZIP_FOLDER + 'Alan_Sozlugu.csv', fieldDictionary(wantPoly, wantRiv)]);
+      entries.push([ZIP_FOLDER + 'BENIOKU.txt', readme(sel, wantPoly, wantRiv, report)]);
+
+      // ---------------- 4) ZIP
+      await writeZip(entries, sink, 80, 100);
+      setProgress(100, L('Dosya kaydediliyor…', 'Saving file…'));
+      await sink.close();
+      const secs = Math.round((performance.now() - t0) / 1000);
+      setProgress(100, `✓ ${L('Tamamlandı', 'Done')}: ${fmtMB(sink.bytes)} · ${fmtN(report.polys)} ${L('havza', 'watersheds')}` +
+        (wantRiv ? `, ${fmtN(report.rivers)} ${L('akarsu', 'streams')}` : '') + ` · ${secs} sn` +
+        (report.polyMissing ? ` · ⚠ ${fmtN(report.polyMissing)} ${L('havzanın poligonu bulunamadı', 'watershed polygons not found')}` : ''));
+    } catch (e) {
+      await sink.abort();
+      if (e && e.message === '__abort__') setProgress(0, L('İptal edildi.', 'Cancelled.'));
+      else {
+        console.error('[tam SHP]', e);
+        setProgress(0, '⚠ ' + L('Hata: ', 'Error: ') + (e && e.message || e));
+        if (e && (e.name === 'RangeError' || /memory|allocation/i.test(e.message || ''))) alert(L('Tarayıcının belleği yetmedi. Filtreleyerek daha küçük parçalar halinde indirin ya da Chrome/Edge kullanın.', 'The browser ran out of memory. Download in smaller filtered parts or use Chrome/Edge.'));
+      }
+    } finally {
+      FS.running = false; setBusy(false);
+    }
+  }
+
+  async function writeZip(entries, sink, pa, pb) {
+    let zipErr = null;
+    const zip = new fflate.Zip((err, dat) => { if (err) zipErr = err; else sink.push(dat); });
+    const enc = new TextEncoder();
+    const sizeOf = d => d instanceof Blob ? d.size : (typeof d === 'string' ? d.length : d.length);
+    const total = entries.reduce((s, e) => s + sizeOf(e[1]), 0) || 1;
+    let done = 0;
+    for (const [name, data] of entries) {
+      chkAbort();
+      const f = new fflate.ZipDeflate(name, { level: ZIP_LEVEL });
+      zip.add(f);
+      if (data instanceof Blob) {
+        const reader = data.stream().getReader();
+        for (;;) {
+          if (FS.abort) { try { reader.cancel(); } catch (e) {} chkAbort(); }
+          const { done: end, value } = await reader.read();
+          if (end) break;
+          f.push(value);
+          if (zipErr) throw zipErr;
+          done += value.length;
+          await sink.flush();
+          if (performance.now() - _lastYield > 120) {
+            setProgress(pa + (pb - pa) * done / total, `${L('ZIP paketleniyor', 'Packing ZIP')}: ${name.split('/').pop()} · ${fmtMB(done)} / ${fmtMB(total)}`);
+            await yieldUI(true);
+          }
+        }
+        f.push(new Uint8Array(0), true);
+      } else {
+        const u = typeof data === 'string' ? enc.encode(data) : data;
+        f.push(u, true); done += sizeOf(data);
+      }
+      if (zipErr) throw zipErr;
+      await sink.flush();
+    }
+    zip.end();
+    if (zipErr) throw zipErr;
+    await sink.flush(true);
+  }
+
+  function fieldDictionary(wantPoly, wantRiv) {
+    const q = s => '"' + String(s).replace(/"/g, '""') + '"';
+    const lines = [['katman', 'alan_adi_shp', 'ozgun_ad', 'kaynak', 'tur', 'aciklama', 'description'].join(',')];
+    if (wantPoly) {
+      for (const f of buildFieldSpecs()) {
+        const origin = (typeof columnOrigin !== 'undefined' && columnOrigin[f.src]) || '';
+        let d = FIELD_DESC[f.src] || FIELD_DESC[f.src.replace(/_Value$/, '')];
+        if (!d && origin === 'koppen') {
+          const en = (typeof koppenDescByCode !== 'undefined' && koppenDescByCode[f.src]) || '';
+          const tr = typeof koppenTR === 'function' ? koppenTR(f.src) : '';
+          d = [`Köppen-Geiger ${f.src.replace(/_Value$/, '')}: ${tr} (havzadaki pay, %)`, `Köppen-Geiger ${f.src.replace(/_Value$/, '')}: ${en} (share in watershed, %)`];
+        }
+        d = d || ['', ''];
+        lines.push(['Havza_Poligonlari', f.name, f.src, SOURCE_LABEL[origin] || origin, f.type === 'N' ? `sayi(${f.len},${f.dec})` : `metin(${f.len})`, d[0], d[1]].map(q).join(','));
+      }
+    }
+    if (wantRiv) {
+      lines.push(['Akarsu_Agi', 'grid_code', 'grid_code', 'Akarsu ağı', 'sayi(2,0)', 'Akarsu Strahler derecesi', 'Stream Strahler order'].map(q).join(','));
+      lines.push(['Akarsu_Agi', 'Uzunluk_m', '-', 'Hesaplanan', 'sayi(12,1)', 'Akarsu parçasının uzunluğu (m, TM36)', 'Stream segment length (m, TM36)'].map(q).join(','));
+    }
+    return '﻿' + lines.join('\r\n') + '\r\n';
+  }
+
+  function readme(sel, wantPoly, wantRiv, rep) {
+    const cite = 'Topsakal, M., Doğan, E., Yasak, S. S., & Özdemir, H. (2026). Türkiye akarsu havzalarının Strahler metodu temelli morfometrik analizi. Türk Coğrafya Dergisi, (89), 141-156. https://doi.org/10.17211/tcd.1896223';
+    const t = [];
+    t.push('TÜRKİYE HAVZA MORFOMETRİSİ VERİ SETİ — SÜRÜM 2 (SHAPEFILE PAKETİ)');
+    t.push('================================================================');
+    t.push('Oluşturulma: ' + new Date().toLocaleString('tr-TR'));
+    t.push('Kaynak: https://geographer16.github.io/Turkiye-Havza-Morfometrisi-Veri-Seti/');
+    t.push('Koordinat sistemi: TUREF / TM36 (EPSG:5256)');
+    t.push('Karakter kodlaması (DBF): UTF-8 (.cpg dosyası ile)');
+    t.push('');
+    t.push('UYGULANAN FİLTRELER');
+    t.push(sel.desc.length ? sel.desc.map(d => ' - ' + d).join('\n') + '\n   (Filtreler yalnızca havza poligonlarına uygulanmıştır.)' : ' - Yok (tüm veri seti)');
+    t.push('');
+    t.push('İÇERİK');
+    if (wantPoly) {
+      t.push(` - Havza_Poligonlari.shp : ${rep.polys} havza poligonu.`);
+      t.push('   Öznitelikler OBJECTID üzerinden birleştirilmiştir: Morfometri + Köppen-Geiger + Arazi Örtüsü + Curve Number.');
+      t.push('   Havzalar iç içedir (düşük dereceli havzalar yüksek dereceli havzaların içinde yer alır);');
+      t.push('   gerekirse Strahler_O alanına göre filtreleyerek kullanın.');
+      if (rep.polyMissing) t.push(`   Not: ${rep.polyMissing} havzanın poligonu kaynak veride bulunamadı.`);
+    }
+    if (wantRiv) {
+      t.push(` - Akarsu_Agi.shp : ${rep.rivers} akarsu parçası (tam akarsu ağı; filtreler yalnızca havza poligonlarına uygulanır).`);
+    }
+    t.push(' - Alan_Sozlugu.csv : DBF alan adları, özgün sütun adları, kaynakları ve açıklamaları.');
+    t.push('');
+    t.push('DBF alan adları en fazla 10 karakter olabildiği için bazı sütunlar kısaltılmıştır');
+    t.push('(ör. Flooded_Veg → Flood_Veg, Bare_Ground → Bare_Grnd). Ayrıntılar Alan_Sozlugu.csv içindedir.');
+    t.push('');
+    t.push('Bu sürümdeki değişiklikler, makaledeki (sürüm 1) veriye göre: raster işleme ve okuma teknikleri');
+    t.push('değiştirilmiş (makaledeki verilerle küçük farklılıklar olabilir), veri HydroMachine v2 ile hesaplanmış,');
+    t.push('kapalı havzalar eklenmiş, Curve Number (CN) değerleri eklenmiş, iklim sınıfları havza içindeki yüzde');
+    t.push('payları olarak yeniden hesaplanmıştır. Jeoloji/litoloji verisi bu sürümde yer almamaktadır.');
+    t.push('');
+    t.push('ATIF / CITATION');
+    t.push(cite);
+    t.push('');
+    t.push('İletişim: topsakalmstf@gmail.com');
+    return '﻿' + t.join('\r\n') + '\r\n';
+  }
+
+  // ------------------------------------------------------------ bağlama
+  function init() {
+    const card = $('fshp-card'); if (!card) return;
+    card.addEventListener('change', e => {
+      const t = e.target;
+      if (t.dataset && t.dataset.all) {
+        document.querySelectorAll(`#fshp-card input[name="${t.dataset.all}"]`).forEach(i => { i.checked = t.dataset.v === '1'; });
+      }
+      updateSummary();
+    });
+    card.addEventListener('click', e => {
+      const b = e.target.closest('[data-all]'); if (!b || b.tagName !== 'BUTTON') return;
+      document.querySelectorAll(`#fshp-card input[name="${b.dataset.all}"]`).forEach(i => { i.checked = b.dataset.v === '1'; });
+      updateSummary();
+    });
+    let tmr; card.addEventListener('input', () => { clearTimeout(tmr); tmr = setTimeout(updateSummary, 300); });
+    $('fshp-go').addEventListener('click', run);
+    $('fshp-cancel').addEventListener('click', () => { FS.abort = true; setProgress(undefined, L('İptal ediliyor…', 'Cancelling…')); });
+    window.addEventListener('beforeunload', e => { if (FS.running) { e.preventDefault(); e.returnValue = ''; } });
+    updateSummary();
+  }
+  window.fshpRefresh = function () { try { updateSummary(); } catch (e) { console.warn('[tam SHP]', e); } };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+</script>
 </body>
 </html>
