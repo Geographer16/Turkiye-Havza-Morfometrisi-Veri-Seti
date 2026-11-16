@@ -914,6 +914,9 @@
   #fshp-bar { height: 100%; width: 0; background: var(--accent); transition: width .25s; }
   #fshp-status { font: 12.5px var(--font-mono); color: var(--text); margin-top: 7px; word-break: break-word; }
   #fshp-go:disabled { opacity: .5; cursor: wait; }
+  #fshp-card .fshp-lockmsg { display: none; font: 11.5px var(--font-sans); color: var(--amber); margin-bottom: 4px; }
+  #fshp-card fieldset:disabled .fshp-lockmsg { display: block; }
+  #fshp-card fieldset:disabled .fshp-row, #fshp-card fieldset:disabled .fshp-list { opacity: .4; }
 </style>
 <script>
   (function() {
@@ -1025,7 +1028,7 @@
 ["Harita görseli oluşturulamadı. Altlık harita karoları tarayıcı güvenlik kısıtlaması nedeniyle dışa aktarılamamış olabilir.","The map image could not be created. Basemap tiles may not have been exportable because of a browser security restriction."],
 ["⚠ Korelasyon için sayısal parametre bulunamadı.","⚠ No numeric parameters found for correlation."],
 ["⚠ Hesaplama başarısız. Daha fazla veri veya farklı filtre deneyin.","⚠ Calculation failed. Try more data or a different filter."]
-,["Veri Setini Shapefile Olarak İndir (Sürüm 2)", "Download the Dataset as Shapefile (Version 2)"],["Sitedeki güncel (sürüm 2) veriden, seçtiğiniz filtrelere göre tek bir ZIP paketi oluşturulur. Havza poligonlarına morfometri, Köppen-Geiger, arazi örtüsü ve Curve Number öznitelikleri birleştirilmiş olarak eklenir. Koordinat sistemi: TUREF / TM36 (EPSG:5256).", "A single ZIP package is built from the current (version 2) data on this site according to your filters. Morphometry, Köppen-Geiger, land cover and Curve Number attributes are joined to the watershed polygons. Coordinate system: TUREF / TM36 (EPSG:5256)."],["Katmanlar", "Layers"],["Havza poligonları (birleşik özniteliklerle)", "Watershed polygons (with joined attributes)"],["Akarsu ağı", "River network"],["Akarsu Strahler derecesi:", "Stream Strahler order:"],["Yalnızca seçili havzaların alanı içindeki akarsular", "Only streams within the selected watersheds"],["Havza Strahler derecesi", "Watershed Strahler order"],["Tümü", "All"],["Hiçbiri", "None"],["Havzalar iç içedir; düşük dereceli havzalar yüksek dereceli havzaların içinde yer alır.", "Watersheds are nested; lower-order watersheds lie within higher-order ones."],["DSİ havzası", "DSI basin"],["Taban havza (GTS)", "Base basin (GTS)"],["Diğer filtreler", "Other filters"],["Alan (km²):", "Area (km²):"],["en az", "min"],["en çok", "max"],["Tablo sekmesindeki filtreyi de uygula", "Also apply the Table tab filter"],["Yalnızca haritada seçili havzalar", "Only watersheds selected on the map"],["⬇ Shapefile (ZIP) Oluştur ve İndir", "⬇ Build and Download Shapefile (ZIP)"],["İptal", "Cancel"],["Akarsu ağı (her zaman tamamı)","River network (always complete)"],["Paket tamamen tarayıcınızda oluşturulur. Tüm veri seti için yaklaşık 500 MB kaynak veri okunur ve işlem birkaç dakika sürebilir; Chrome veya Edge önerilir (dosya doğrudan diske yazılır). Diğer tarayıcılarda büyük indirmelerde bellek yetmeyebilir; bu durumda filtreleyerek parça parça indirin.", "The package is built entirely in your browser. About 500 MB of source data is read for the full dataset and it may take a few minutes; Chrome or Edge is recommended (the file is written directly to disk). Other browsers may run out of memory for large downloads; in that case download in filtered parts."]
+,["Veri Setini Shapefile Olarak İndir (Sürüm 2)", "Download the Dataset as Shapefile (Version 2)"],["Sitedeki güncel (sürüm 2) veriden, seçtiğiniz filtrelere göre tek bir ZIP paketi oluşturulur. Havza poligonlarına morfometri, Köppen-Geiger, arazi örtüsü ve Curve Number öznitelikleri birleştirilmiş olarak eklenir. Koordinat sistemi: TUREF / TM36 (EPSG:5256).", "A single ZIP package is built from the current (version 2) data on this site according to your filters. Morphometry, Köppen-Geiger, land cover and Curve Number attributes are joined to the watershed polygons. Coordinate system: TUREF / TM36 (EPSG:5256)."],["Katmanlar", "Layers"],["Havza poligonları (birleşik özniteliklerle)", "Watershed polygons (with joined attributes)"],["Akarsu ağı", "River network"],["Akarsu Strahler derecesi:", "Stream Strahler order:"],["Yalnızca seçili havzaların alanı içindeki akarsular", "Only streams within the selected watersheds"],["Havza Strahler derecesi", "Watershed Strahler order"],["Tümü", "All"],["Hiçbiri", "None"],["Havzalar iç içedir; düşük dereceli havzalar yüksek dereceli havzaların içinde yer alır.", "Watersheds are nested; lower-order watersheds lie within higher-order ones."],["DSİ havzası", "DSI basin"],["Taban havza (GTS)", "Base basin (GTS)"],["Diğer filtreler", "Other filters"],["Alan (km²):", "Area (km²):"],["en az", "min"],["en çok", "max"],["Tablo sekmesindeki filtreyi de uygula", "Also apply the Table tab filter"],["Yalnızca haritada seçili havzalar", "Only watersheds selected on the map"],["⬇ Shapefile (ZIP) Oluştur ve İndir", "⬇ Build and Download Shapefile (ZIP)"],["İptal", "Cancel"],["Taban havza filtresi aktifken kullanılamaz.","Unavailable while the base basin filter is active."],["DSİ havzası filtresi aktifken kullanılamaz.","Unavailable while the DSI basin filter is active."],["Akarsu ağı (her zaman tamamı)","River network (always complete)"],["Paket tamamen tarayıcınızda oluşturulur. Tüm veri seti için yaklaşık 500 MB kaynak veri okunur ve işlem birkaç dakika sürebilir; Chrome veya Edge önerilir (dosya doğrudan diske yazılır). Diğer tarayıcılarda büyük indirmelerde bellek yetmeyebilir; bu durumda filtreleyerek parça parça indirin.", "The package is built entirely in your browser. About 500 MB of source data is read for the full dataset and it may take a few minutes; Chrome or Edge is recommended (the file is written directly to disk). Other browsers may run out of memory for large downloads; in that case download in filtered parts."]
   ].forEach(function (p) { D[norm(p[0])] = p[1]; });
   var TPI = { 'Dereler': 'Streams', 'Yamaç Ortası Drenajları': 'Midslope Drainages', 'Yüksek Arazi Drenajları': 'Upland Drainages', 'Vadiler': 'Valleys', 'Düzlükler': 'Plains', 'Açık Yamaçlar': 'Open Slopes', 'Üst Yamaçlar': 'Upper Slopes', 'Yerel Sırtlar': 'Local Ridges', 'Yamaç Ortası Sırtları': 'Midslope Ridges', 'Yüksek Sırtlar': 'High Ridges' };
   function pl(n, one, many) { return n + ' ' + (n === '1' ? one : many); }
@@ -1755,13 +1758,15 @@ function spCore(cv,W,H,dpr,env,raf,still0){
           <div class="fshp-row" style="margin-top:6px"><button type="button" class="fshp-mini" data-all="fshp-ord" data-v="1">Tümü</button><button type="button" class="fshp-mini" data-all="fshp-ord" data-v="0">Hiçbiri</button></div>
           <div class="fshp-hint">Havzalar iç içedir; düşük dereceli havzalar yüksek dereceli havzaların içinde yer alır.</div>
         </fieldset>
-        <fieldset>
+        <fieldset id="fshp-fs-dsi">
           <legend>DSİ havzası</legend>
+          <div class="fshp-lockmsg">Taban havza filtresi aktifken kullanılamaz.</div>
           <div class="fshp-row"><button type="button" class="fshp-mini" data-all="fshp-dsi" data-v="1">Tümü</button><button type="button" class="fshp-mini" data-all="fshp-dsi" data-v="0">Hiçbiri</button></div>
           <div class="fshp-list" id="fshp-dsi" data-i18n-skip></div>
         </fieldset>
-        <fieldset>
+        <fieldset id="fshp-fs-taban">
           <legend>Taban havza (GTS)</legend>
+          <div class="fshp-lockmsg">DSİ havzası filtresi aktifken kullanılamaz.</div>
           <div class="fshp-row"><button type="button" class="fshp-mini" data-all="fshp-taban" data-v="1">Tümü</button><button type="button" class="fshp-mini" data-all="fshp-taban" data-v="0">Hiçbiri</button></div>
           <div class="fshp-list" id="fshp-taban" data-i18n-skip></div>
         </fieldset>
@@ -7431,6 +7436,20 @@ function mobileRevealPoint(latlng) {
     FS.built = true;
   }
 
+  // DSİ ve taban filtreleri birbirini dışlar: biri daraltılınca diğeri tümüne döner ve kilitlenir
+  function groupActive(name) {
+    const all = document.querySelectorAll(`#fshp-card input[name="${name}"]`);
+    return all.length > 0 && [...all].some(i => !i.checked);
+  }
+  function applyExclusivity() {
+    const fsD = $('fshp-fs-dsi'), fsT = $('fshp-fs-taban'); if (!fsD || !fsT) return;
+    const dA = groupActive('fshp-dsi'), tA = groupActive('fshp-taban');
+    const lockT = dA, lockD = !dA && tA;
+    if (lockT) document.querySelectorAll('#fshp-card input[name="fshp-taban"]').forEach(i => { i.checked = true; });
+    if (lockD) document.querySelectorAll('#fshp-card input[name="fshp-dsi"]').forEach(i => { i.checked = true; });
+    fsT.disabled = lockT || FS.running; fsD.disabled = lockD || FS.running;
+  }
+
   function currentSelection() {
     const kc = keyCol();
     const ords = new Set(checkedVals('fshp-ord').map(Number));
@@ -7468,6 +7487,7 @@ function mobileRevealPoint(latlng) {
   async function updateSummary() {
     if (FS.running) return;
     buildOptions();
+    applyExclusivity();
     const el = $('fshp-summary'); if (!el) return;
     if (typeof csvData === 'undefined' || !csvData || !csvData.length) { el.textContent = L('Veriler yükleniyor…', 'Loading data…'); return; }
     const tl = $('fshp-usetable-n');
@@ -7619,7 +7639,7 @@ function mobileRevealPoint(latlng) {
         if (e && (e.name === 'RangeError' || /memory|allocation/i.test(e.message || ''))) alert(L('Tarayıcının belleği yetmedi. Filtreleyerek daha küçük parçalar halinde indirin ya da Chrome/Edge kullanın.', 'The browser ran out of memory. Download in smaller filtered parts or use Chrome/Edge.'));
       }
     } finally {
-      FS.running = false; setBusy(false);
+      FS.running = false; setBusy(false); updateSummary();
     }
   }
 
